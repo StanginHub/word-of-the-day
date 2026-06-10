@@ -17,6 +17,10 @@ export interface DailyWord {
   antonyms_strong: string[] | null;
   antonyms_weak: string[] | null;
   thai_translations: string[] | null;
+  examples: string[] | null;
+  etymology: string | null;
+  cefr: string | null;
+  topic: string | null;
   fetched_date: string;
 }
 

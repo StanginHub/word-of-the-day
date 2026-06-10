@@ -15,6 +15,10 @@ type DictEntry = {
   ipa?: string;
   definition?: string;
   oxfordSynonyms?: string[];
+  examples?: string[];
+  etymology?: string;
+  cefr?: string;
+  topic?: string;
 };
 
 // ---------- helpers ----------
@@ -52,6 +56,10 @@ async function scrapeOxford(): Promise<DictEntry> {
   let ipa = "";
   let definition = "";
   const oxfordSynonyms: string[] = [];
+  const examples: string[] = [];
+  let etymology = "";
+  let cefr = "";
+  let topic = "";
 
   // 5. Fetch detail page for richer data
   if (detailUrl) {
@@ -76,6 +84,36 @@ async function scrapeOxford(): Promise<DictEntry> {
           if (syn) oxfordSynonyms.push(syn);
         });
 
+        // Examples — collect all <span class="x"> elements
+        $$("span.x").each((_, el) => {
+          const ex = cleanText($$(el).text());
+          if (ex) examples.push(ex);
+        });
+
+        // Etymology — inside div#wordorigin or span.box_title "Word Origin"
+        const originDiv = $$("#wordorigin").first();
+        if (originDiv.length) {
+          etymology = cleanText(originDiv.text()).replace(/^Word Origin\s*/i, "") || "";
+        } else {
+          $$("span.box_title").each((_, el) => {
+            if (cleanText($$(el).text()).toLowerCase() === "word origin") {
+              const bodyEl = $$(el).next("span.body");
+              if (bodyEl.length) {
+                etymology = cleanText(bodyEl.find("span.p").text()) || "";
+              }
+            }
+          });
+        }
+
+        // CEFR — <div class="cefr">C2</div>
+        cefr = cleanText($$("div.cefr").first().text()) || "";
+
+        // Topic — <a class="origin" href="/topic/..."><div>TopicName</div></a>
+        const topicEl = $$("a.origin").first();
+        if (topicEl.length) {
+          topic = cleanText(topicEl.find("div").first().text()) || cleanText(topicEl.text()) || "";
+        }
+
         // If PoS wasn't found on the homepage, try the detail page (.pos is a span there)
         if (!pos) {
           pos = cleanText($$("span.pos").first().text()) || "";
@@ -94,6 +132,10 @@ async function scrapeOxford(): Promise<DictEntry> {
     ipa: ipa || undefined,
     definition: definition || undefined,
     oxfordSynonyms: oxfordSynonyms.length > 0 ? oxfordSynonyms : undefined,
+    examples: examples.length > 0 ? examples : undefined,
+    etymology: etymology || undefined,
+    cefr: cefr || undefined,
+    topic: topic || undefined,
   };
 }
 
@@ -481,6 +523,10 @@ export async function POST(request: Request) {
       antonyms_strong,
       antonyms_weak,
       thai_translations,
+      examples: entry.examples || null,
+      etymology: entry.etymology || null,
+      cefr: entry.cefr || null,
+      topic: entry.topic || null,
       fetched_date: date,
     };
 

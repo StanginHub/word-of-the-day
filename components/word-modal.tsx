@@ -24,6 +24,10 @@ interface DailyWord {
   antonyms_strong: string[] | null;
   antonyms_weak: string[] | null;
   thai_translations: string[] | null;
+  examples: string[] | null;
+  etymology: string | null;
+  cefr: string | null;
+  topic: string | null;
   fetched_date: string;
 }
 
@@ -64,6 +68,47 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
             <div className="w-full">
               <p className="text-base text-zinc-700 leading-relaxed text-center px-2">
                 {word.definition}
+              </p>
+            </div>
+          )}
+
+          {/* CEFR + Topic Badges */}
+          {(word.cefr || word.topic) && (
+            <div className="flex flex-wrap gap-2 justify-center">
+              {word.cefr && (
+                <Badge variant="outline" className="text-xs border-purple-500 text-purple-700">
+                  CEFR {word.cefr}
+                </Badge>
+              )}
+              {word.topic && (
+                <Badge variant="outline" className="text-xs border-indigo-500 text-indigo-700">
+                  {word.topic}
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Examples */}
+          {word.examples && word.examples.length > 0 && (
+            <div className="w-full">
+              <p className="text-sm font-medium text-zinc-500 mb-2">
+                🗣️ Examples:
+              </p>
+              <ul className="space-y-1.5 pl-2">
+                {word.examples.map((ex: string, i: number) => (
+                  <li key={i} className="text-sm text-zinc-600 italic">
+                    &ldquo;{ex}&rdquo;
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Etymology */}
+          {word.etymology && (
+            <div className="w-full">
+              <p className="text-sm text-zinc-500 italic">
+                📖 {word.etymology}
               </p>
             </div>
           )}

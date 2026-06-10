@@ -94,6 +94,47 @@ export function WordBrowser({ words, initialDate }: WordBrowserProps) {
           </div>
         )}
 
+        {/* CEFR + Topic Badges */}
+        {(w.cefr || w.topic) && (
+          <div className="mb-4 flex flex-wrap gap-2 justify-center">
+            {w.cefr && (
+              <Badge variant="outline" className="text-xs border-purple-500 text-purple-700">
+                CEFR {w.cefr}
+              </Badge>
+            )}
+            {w.topic && (
+              <Badge variant="outline" className="text-xs border-indigo-500 text-indigo-700">
+                {w.topic}
+              </Badge>
+            )}
+          </div>
+        )}
+
+        {/* Examples (up to 2) */}
+        {w.examples && w.examples.length > 0 && (
+          <div className="mb-4">
+            <p className="text-sm font-medium text-zinc-500 mb-2">
+              🗣️ Examples:
+            </p>
+            <ul className="space-y-1.5">
+              {w.examples.slice(0, 2).map((ex: string, i: number) => (
+                <li key={i} className="text-sm text-zinc-600 italic text-center">
+                  &ldquo;{ex}&rdquo;
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Etymology */}
+        {w.etymology && (
+          <div className="mb-4">
+            <p className="text-sm text-zinc-500 italic text-center">
+              📖 {w.etymology}
+            </p>
+          </div>
+        )}
+
         {/* Thai Translations */}
         {w.thai_translations && w.thai_translations.length > 0 && (
           <div className="mb-6">
