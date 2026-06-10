@@ -63,10 +63,10 @@ export default function DateSelector({
   );
 
   return (
-    <div className="w-full mb-8">
+    <div className="w-full mb-8 relative">
       <div
         ref={scrollRef}
-        className="flex gap-2 overflow-x-auto pb-2 scroll-smooth scrollbar-hide"
+        className="flex gap-2 overflow-x-auto pb-2 scroll-smooth"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {sorted.map((w) => {
@@ -85,12 +85,14 @@ export default function DateSelector({
               )}
             >
               <span className="font-semibold">{formatDateLabel(w.fetched_date)}</span>
-              <span className="mx-1.5 text-muted-foreground/40">—</span>
+              <span className="mx-1.5 text-muted-foreground/40" aria-hidden="true">·</span>
               <span>{w.word}</span>
             </button>
           );
         })}
       </div>
+      {/* Fade hint: right edge gradient for scrollable overflow */}
+      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background to-transparent" aria-hidden="true" />
     </div>
   );
 }

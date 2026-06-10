@@ -59,7 +59,7 @@ export function WordBrowser({ words, initialDate }: WordBrowserProps) {
   const w = selectedWord;
 
   return (
-    <div className="flex flex-1 flex-col items-center px-4 py-12">
+    <div className="flex flex-1 flex-col items-center px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
       <div className="w-full max-w-3xl">
         {/* Date Selector */}
         <DateSelector
@@ -69,7 +69,7 @@ export function WordBrowser({ words, initialDate }: WordBrowserProps) {
         />
 
         {/* Word Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-10">
           <h1 className="font-bold tracking-tight text-primary mb-3" style={{fontSize: "clamp(2.5rem, 5vw, 3.75rem)", lineHeight: 1.1, letterSpacing: "-0.03em"}}>
             {w.word}
           </h1>
@@ -87,57 +87,60 @@ export function WordBrowser({ words, initialDate }: WordBrowserProps) {
 
         {/* Definition */}
         {w.definition && (
-          <div className="mb-6">
+          <div className="mb-8">
             <p className="text-lg leading-relaxed text-center max-w-prose mx-auto text-foreground/85">
               {w.definition}
             </p>
           </div>
         )}
 
-        {/* CEFR + Topic Badges */}
-        {(w.cefr || w.topic) && (
-          <div className="mb-5 flex flex-wrap gap-2 justify-center">
-            {w.cefr && (
-              <Badge variant="outline" className="text-xs border-accent/40 text-accent bg-accent/5">
-                {w.cefr}
-              </Badge>
+        {/* Metadata block: CEFR + Examples + Etymology — grouped tight */}
+        {(w.cefr || w.topic || (w.examples && w.examples.length > 0) || w.etymology) && (
+          <div className="mb-10 space-y-3">
+            {/* CEFR + Topic */}
+            {(w.cefr || w.topic) && (
+              <div className="flex flex-wrap gap-2 justify-center">
+                {w.cefr && (
+                  <Badge variant="outline" className="text-xs border-accent/40 text-accent bg-accent/5">
+                    {w.cefr}
+                  </Badge>
+                )}
+                {w.topic && (
+                  <Badge variant="outline" className="text-xs border-border text-muted-foreground">
+                    {w.topic}
+                  </Badge>
+                )}
+              </div>
             )}
-            {w.topic && (
-              <Badge variant="outline" className="text-xs border-border text-muted-foreground">
-                {w.topic}
-              </Badge>
+
+            {/* Examples */}
+            {w.examples && w.examples.length > 0 && (
+              <div>
+                <p className="text-xs font-mono font-medium text-muted-foreground uppercase tracking-wider mb-2 text-center">
+                  Examples
+                </p>
+                <ul className="space-y-2">
+                  {w.examples.slice(0, 2).map((ex: string, i: number) => (
+                    <li key={i} className="text-sm text-muted-foreground italic text-center max-w-prose mx-auto">
+                      &ldquo;{ex}&rdquo;
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Etymology */}
+            {w.etymology && (
+              <p className="text-xs text-muted-foreground/70 italic text-center font-mono">
+                {w.etymology}
+              </p>
             )}
           </div>
         )}
 
-        {/* Examples */}
-        {w.examples && w.examples.length > 0 && (
-          <div className="mb-5">
-            <p className="text-xs font-mono font-medium text-muted-foreground uppercase tracking-wider mb-2 text-center">
-              Examples
-            </p>
-            <ul className="space-y-2">
-              {w.examples.slice(0, 2).map((ex: string, i: number) => (
-                <li key={i} className="text-sm text-muted-foreground italic text-center max-w-prose mx-auto">
-                  &ldquo;{ex}&rdquo;
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Etymology */}
-        {w.etymology && (
-          <div className="mb-5">
-            <p className="text-xs text-muted-foreground/70 italic text-center font-mono">
-              {w.etymology}
-            </p>
-          </div>
-        )}
-
-        {/* Thai Translations */}
+        {/* Thai Translations — highlighted section */}
         {w.thai_translations && w.thai_translations.length > 0 && (
-          <div className="mb-8">
+          <div className="mb-12 bg-muted/30 border border-border/50 rounded-lg p-5 sm:p-6">
             <p className="text-xs font-mono font-medium text-muted-foreground uppercase tracking-wider mb-3 text-center">
               Thai
             </p>
