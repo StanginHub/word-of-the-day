@@ -35,7 +35,9 @@ export default function RootLayout({
             <Link href="/" className="text-lg font-semibold tracking-tight text-foreground hover:text-accent transition-colors">
               Word of the Day
             </Link>
-            <span className="text-xs font-mono text-muted-foreground tracking-wide uppercase">TH · EN</span>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-mono text-muted-foreground/50 tracking-wider">TH</span>
+            </div>
           </div>
         </header>
         <main className="flex-1">{children}</main>

@@ -17,7 +17,11 @@ function fmt(d: string): string {
 function isToday(d: string, t: string) { return d === t; }
 function today() { return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" }); }
 
-// ----- reusable strength badge groups -----
+async function copyToClipboard(text: string) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
+}
+
+// ----- strength badge groups -----
 function BadgesOf({ words, color }: { words: string[] | null; color: "emerald" | "blue" | "muted" }) {
   if (!words || words.length === 0) return null;
   const map = {
@@ -27,7 +31,9 @@ function BadgesOf({ words, color }: { words: string[] | null; color: "emerald" |
   };
   return (
     <div className="flex flex-wrap justify-center gap-2">
-      {words.map((s) => <Badge key={s} variant="outline" className={cn("text-sm px-3 py-1", map[color])}>{s}</Badge>)}
+      {words.map((s, i) => (
+        <Badge key={s + i} variant="outline" className={cn("text-sm px-3 py-1", map[color])}>{s}</Badge>
+      ))}
     </div>
   );
 }
@@ -40,87 +46,113 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
 
   const [modalWord, setModalWord] = useState<DailyWord | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const open = useCallback((w: DailyWord) => { setModalWord(w); setModalOpen(true); }, []);
+
+  const handleCopy = useCallback(async () => {
+    if (!tw) return;
+    const ok = await copyToClipboard(`${tw.word} — ${tw.definition || ""}`);
+    if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1800); }
+  }, [tw]);
+
+  const handleRandom = useCallback(() => {
+    if (past.length === 0) return;
+    const pick = past[Math.floor(Math.random() * past.length)];
+    open(pick);
+  }, [past, open]);
+
+  // ----- Thesaurus -----
+  const Thesaurus = (w: DailyWord) => {
+    const hasData = w.synonyms && w.synonyms.length > 0;
+    const hasAnt = w.antonyms && w.antonyms.length > 0;
+    if (!hasData && !hasAnt) return null;
+
+    return (
+      <Tabs defaultValue="synonyms" className="w-full">
+        <TabsList className="mx-auto mb-5">
+          <TabsTrigger value="synonyms">Synonyms</TabsTrigger>
+          {hasAnt && <TabsTrigger value="antonyms">Antonyms</TabsTrigger>}
+        </TabsList>
+
+        <TabsContent value="synonyms">
+          {hasData ? (
+            <div className="space-y-4">
+              {w.synonyms_strongest && w.synonyms_strongest.length > 0 && (
+                <div className="bg-emerald-50/40 rounded-xl p-4 border border-emerald-200/40">
+                  <p className="text-[11px] font-semibold text-emerald-700 tracking-wider uppercase mb-2">Strongest</p>
+                  <BadgesOf words={w.synonyms_strongest} color="emerald" />
+                </div>
+              )}
+              {w.synonyms_strong && w.synonyms_strong.length > 0 && (
+                <div className="bg-blue-50/40 rounded-xl p-4 border border-blue-200/40">
+                  <p className="text-[11px] font-semibold text-blue-700 tracking-wider uppercase mb-2">Strong</p>
+                  <BadgesOf words={w.synonyms_strong} color="blue" />
+                </div>
+              )}
+              {w.synonyms_weak && w.synonyms_weak.length > 0 && (
+                <div className="bg-muted/40 rounded-xl p-4 border border-border/50">
+                  <p className="text-[11px] font-semibold text-muted-foreground/60 tracking-wider uppercase mb-2">Weak</p>
+                  <BadgesOf words={w.synonyms_weak} color="muted" />
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground/50 text-sm">No synonyms available.</p>
+          )}
+        </TabsContent>
+
+        {hasAnt && (
+          <TabsContent value="antonyms">
+            {w.antonyms && w.antonyms.length > 0 ? (
+              <div className="space-y-4">
+                {w.antonyms_strongest && w.antonyms_strongest.length > 0 && (
+                  <div className="bg-emerald-50/40 rounded-xl p-4 border border-emerald-200/40">
+                    <p className="text-[11px] font-semibold text-emerald-700 tracking-wider uppercase mb-2">Strongest</p>
+                    <BadgesOf words={w.antonyms_strongest!} color="emerald" />
+                  </div>
+                )}
+                {w.antonyms_strong && w.antonyms_strong.length > 0 && (
+                  <div className="bg-blue-50/40 rounded-xl p-4 border border-blue-200/40">
+                    <p className="text-[11px] font-semibold text-blue-700 tracking-wider uppercase mb-2">Strong</p>
+                    <BadgesOf words={w.antonyms_strong!} color="blue" />
+                  </div>
+                )}
+                {w.antonyms_weak && w.antonyms_weak.length > 0 && (
+                  <div className="bg-muted/40 rounded-xl p-4 border border-border/50">
+                    <p className="text-[11px] font-semibold text-muted-foreground/60 tracking-wider uppercase mb-2">Weak</p>
+                    <BadgesOf words={w.antonyms_weak!} color="muted" />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground/50 text-sm">No antonyms available.</p>
+            )}
+          </TabsContent>
+        )}
+      </Tabs>
+    );
+  };
 
   if (sorted.length === 0) {
     return (
-      <div className="flex flex-1 flex-col items-center px-4 py-16">
-        <p className="text-muted-foreground text-sm">No words yet. Check back soon.</p>
+      <div className="flex flex-1 flex-col items-center justify-center px-4 py-20 animate-in fade-in duration-700">
+        <p className="text-lg text-muted-foreground">Ready for the first word.</p>
+        <p className="text-sm text-muted-foreground/50 mt-2">Words arrive daily — check back tomorrow.</p>
       </div>
     );
   }
 
-  // ----- synonyms/antonyms tab section -----
-  const Thesaurus = (w: DailyWord) => (
-    <Tabs defaultValue="synonyms" className="w-full">
-      <TabsList className="mx-auto mb-5">
-        <TabsTrigger value="synonyms">Synonyms</TabsTrigger>
-        <TabsTrigger value="antonyms">Antonyms</TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="synonyms">
-        {w.synonyms && w.synonyms.length > 0 ? (
-          <div className="space-y-4">
-            {w.synonyms_strongest && w.synonyms_strongest.length > 0 && (
-              <div className="bg-emerald-50/40 rounded-lg p-4 border border-emerald-200/40">
-                <p className="text-[11px] font-semibold text-emerald-700 tracking-wider uppercase mb-2">Strongest</p>
-                <BadgesOf words={w.synonyms_strongest} color="emerald" />
-              </div>
-            )}
-            {w.synonyms_strong && w.synonyms_strong.length > 0 && (
-              <div className="bg-blue-50/40 rounded-lg p-4 border border-blue-200/40">
-                <p className="text-[11px] font-semibold text-blue-700 tracking-wider uppercase mb-2">Strong</p>
-                <BadgesOf words={w.synonyms_strong} color="blue" />
-              </div>
-            )}
-            {w.synonyms_weak && w.synonyms_weak.length > 0 && (
-              <div className="bg-muted/40 rounded-lg p-4 border border-border/50">
-                <p className="text-[11px] font-semibold text-muted-foreground/60 tracking-wider uppercase mb-2">Weak</p>
-                <BadgesOf words={w.synonyms_weak} color="muted" />
-              </div>
-            )}
-          </div>
-        ) : <p className="text-center text-muted-foreground/50 text-sm">No synonyms available.</p>}
-      </TabsContent>
-
-      <TabsContent value="antonyms">
-        {w.antonyms && w.antonyms.length > 0 ? (
-          <div className="space-y-4">
-            {w.antonyms_strongest && w.antonyms_strongest.length > 0 && (
-              <div className="bg-emerald-50/40 rounded-lg p-4 border border-emerald-200/40">
-                <p className="text-[11px] font-semibold text-emerald-700 tracking-wider uppercase mb-2">Strongest</p>
-                <BadgesOf words={w.antonyms_strongest!} color="emerald" />
-              </div>
-            )}
-            {w.antonyms_strong && w.antonyms_strong.length > 0 && (
-              <div className="bg-blue-50/40 rounded-lg p-4 border border-blue-200/40">
-                <p className="text-[11px] font-semibold text-blue-700 tracking-wider uppercase mb-2">Strong</p>
-                <BadgesOf words={w.antonyms_strong!} color="blue" />
-              </div>
-            )}
-            {w.antonyms_weak && w.antonyms_weak.length > 0 && (
-              <div className="bg-muted/40 rounded-lg p-4 border border-border/50">
-                <p className="text-[11px] font-semibold text-muted-foreground/60 tracking-wider uppercase mb-2">Weak</p>
-                <BadgesOf words={w.antonyms_weak!} color="muted" />
-              </div>
-            )}
-          </div>
-        ) : <p className="text-center text-muted-foreground/50 text-sm">No antonyms available.</p>}
-      </TabsContent>
-    </Tabs>
-  );
-
   const w = tw;
 
   return (
-    <div className="flex flex-1 flex-col items-center px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+    <div className="flex flex-1 flex-col items-center px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-in fade-in duration-500">
       <div className="w-full max-w-3xl">
 
         {/* ═══ TODAY ═══ */}
         <section className="mb-16 text-center">
 
-          {/* word with accent underline */}
-          <div className="relative inline-block mb-1">
+          {/* word header row */}
+          <div className="relative inline-block mb-1 group">
             <h1
               className="font-bold tracking-tight text-primary"
               style={{fontSize: "clamp(2.5rem, 5vw, 3.75rem)", lineHeight: 1.1, letterSpacing: "-0.03em", textWrap: "balance"}}
@@ -128,6 +160,20 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
               {w.word}
             </h1>
             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-[3px] rounded-full bg-accent/40" />
+
+            {/* copy button */}
+            <button
+              onClick={handleCopy}
+              className="absolute -right-10 top-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-muted-foreground/40 hover:text-accent"
+              aria-label="Copy word"
+              title="Copy word + definition"
+            >
+              {copied ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              )}
+            </button>
           </div>
 
           {/* IPA + PoS */}
@@ -138,9 +184,7 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
 
           {/* Definition */}
           {w.definition && (
-            <p
-              className="text-base leading-relaxed max-w-prose mx-auto text-foreground/85"
-            >
+            <p className="text-base leading-relaxed max-w-prose mx-auto text-foreground/85">
               {w.definition}
             </p>
           )}
@@ -168,7 +212,7 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
             </div>
           )}
 
-          {/* Thai */}
+          {/* Thai highlight box */}
           {w.thai_translations && w.thai_translations.length > 0 && (
             <div className="mb-10 bg-accent/5 border border-accent/15 rounded-xl p-5 sm:p-6">
               <p className="text-[11px] font-mono font-medium text-accent uppercase tracking-wider mb-3 text-center">Translation (Thai)</p>
@@ -187,33 +231,56 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
 
           <Separator className="mt-8 mb-6" />
 
-          <Button variant="default" onClick={() => open(w)}>
-            View All Details
-          </Button>
+          <div className="flex items-center justify-center gap-3">
+            <Button variant="default" onClick={() => open(w)}>
+              View All Details
+            </Button>
+            {past.length > 0 && (
+              <Button variant="outline" onClick={handleRandom}>
+                Random
+              </Button>
+            )}
+          </div>
         </section>
 
         {/* ═══ PAST WORDS ═══ */}
         {past.length > 0 && (
-          <section>
+          <section className="animate-in slide-in-from-bottom-4 fade-in duration-500 delay-150">
             <div className="flex items-center gap-3 mb-5">
               <Separator className="flex-1" />
-              <span className="text-[11px] font-mono font-medium text-muted-foreground/50 uppercase tracking-widest shrink-0">Previous</span>
+              <span className="text-[11px] font-mono font-medium text-muted-foreground/50 uppercase tracking-widest shrink-0">
+                {past.length} Previous
+              </span>
               <Separator className="flex-1" />
             </div>
 
             <div className="rounded-xl border border-border/40 divide-y divide-border/30 overflow-hidden">
-              {past.map((pw) => (
-                <button
-                  key={pw.id}
-                  onClick={() => open(pw)}
-                  className="w-full text-left flex items-center gap-3 px-4 py-3.5 sm:px-5 hover:bg-muted/60 transition-colors cursor-pointer group"
-                >
-                  <span className="text-xs font-mono text-muted-foreground/50 font-medium w-10 shrink-0">{fmt(pw.fetched_date)}</span>
-                  <span className="text-base font-semibold text-foreground group-hover:text-accent transition-colors">{pw.word}</span>
-                  <span className="text-muted-foreground/20 hidden sm:inline">·</span>
-                  <span className="text-sm text-muted-foreground/50 truncate hidden sm:block max-w-md">{pw.definition}</span>
-                </button>
-              ))}
+              {past.map((pw) => {
+                const thaiPreview = pw.thai_translations?.slice(0, 2) ?? [];
+                return (
+                  <button
+                    key={pw.id}
+                    onClick={() => open(pw)}
+                    className="w-full text-left flex items-center gap-3 px-5 py-4 hover:bg-muted/60 transition-colors cursor-pointer group active:bg-muted/80"
+                  >
+                    {/* date */}
+                    <span className="text-xs font-mono text-muted-foreground/50 font-medium w-10 shrink-0">{fmt(pw.fetched_date)}</span>
+                    {/* word */}
+                    <span className="text-base font-semibold text-foreground group-hover:text-accent transition-colors shrink-0">{pw.word}</span>
+                    {/* dot + definition */}
+                    <span className="text-muted-foreground/20 hidden sm:inline">·</span>
+                    <span className="text-sm text-muted-foreground/50 truncate hidden sm:block max-w-xs">{pw.definition}</span>
+                    {/* Thai badges (right side) */}
+                    <div className="ml-auto flex gap-1.5 shrink-0">
+                      {thaiPreview.map((t, i) => (
+                        <span key={t + i} className="text-[11px] px-2 py-0.5 rounded-full bg-accent/8 text-accent/70 border border-accent/15 font-medium">
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </section>
         )}
