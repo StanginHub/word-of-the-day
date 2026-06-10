@@ -25,7 +25,7 @@ type DictEntry = {
 
 /** Today in YYYY-MM-DD (UTC). */
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10)" });
+  return new Date().toISOString().slice(0, 10);
 }
 
 // ---------- step 1: Oxford scraper ----------
