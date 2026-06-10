@@ -52,12 +52,12 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
 
         <div className="flex flex-col items-center gap-3 pt-2">
           {/* IPA and PoS */}
-          <div className="flex items-center justify-center gap-3 text-zinc-500">
+          <div className="flex items-center justify-center gap-3 text-muted-foreground">
             {word.ipa && (
-              <span className="text-base font-mono">/{word.ipa}/</span>
+              <span className="text-base font-mono tracking-tight">/{word.ipa}/</span>
             )}
             {word.pos && (
-              <Badge variant="secondary" className="text-sm">
+              <Badge variant="secondary" className="text-xs uppercase tracking-wider">
                 {word.pos}
               </Badge>
             )}
@@ -66,7 +66,7 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
           {/* Definition */}
           {word.definition && (
             <div className="w-full">
-              <p className="text-base text-zinc-700 leading-relaxed text-center px-2">
+              <p className="text-base leading-relaxed text-center px-2 text-foreground/85">
                 {word.definition}
               </p>
             </div>
@@ -76,12 +76,12 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
           {(word.cefr || word.topic) && (
             <div className="flex flex-wrap gap-2 justify-center">
               {word.cefr && (
-                <Badge variant="outline" className="text-xs border-purple-500 text-purple-700">
-                  CEFR {word.cefr}
+                <Badge variant="outline" className="text-xs border-accent/40 text-accent bg-accent/5">
+                  {word.cefr}
                 </Badge>
               )}
               {word.topic && (
-                <Badge variant="outline" className="text-xs border-indigo-500 text-indigo-700">
+                <Badge variant="outline" className="text-xs border-border text-muted-foreground">
                   {word.topic}
                 </Badge>
               )}
@@ -91,12 +91,12 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
           {/* Examples */}
           {word.examples && word.examples.length > 0 && (
             <div className="w-full">
-              <p className="text-sm font-medium text-zinc-500 mb-2">
-                🗣️ Examples:
+              <p className="text-xs font-mono font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Examples
               </p>
-              <ul className="space-y-1.5 pl-2">
+              <ul className="space-y-2 pl-0">
                 {word.examples.map((ex: string, i: number) => (
-                  <li key={i} className="text-sm text-zinc-600 italic">
+                  <li key={i} className="text-sm text-muted-foreground italic text-center">
                     &ldquo;{ex}&rdquo;
                   </li>
                 ))}
@@ -107,8 +107,8 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
           {/* Etymology */}
           {word.etymology && (
             <div className="w-full">
-              <p className="text-sm text-zinc-500 italic">
-                📖 {word.etymology}
+              <p className="text-xs text-muted-foreground/70 italic text-center font-mono">
+                {word.etymology}
               </p>
             </div>
           )}
@@ -118,15 +118,15 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
           {/* Thai Translations */}
           {word.thai_translations && word.thai_translations.length > 0 && (
             <div className="w-full">
-              <p className="text-sm font-medium text-zinc-500 mb-2">
-                🇹🇭 คำแปล:
+              <p className="text-xs font-mono font-medium text-muted-foreground uppercase tracking-wider mb-2 text-center">
+                Thai
               </p>
               <div className="flex flex-wrap gap-2 justify-center">
                 {word.thai_translations.map((t: string) => (
                   <Badge
                     key={t}
                     variant="default"
-                    className="text-sm px-3 py-1 bg-accent/10 text-accent border-accent/20"
+                    className="text-sm px-3 py-1 font-medium bg-accent/10 text-accent border-accent/20"
                   >
                     {t}
                   </Badge>
@@ -139,7 +139,9 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
 
           {/* Synonyms */}
           <div className="w-full">
-            <p className="text-sm font-medium text-zinc-500 mb-3">Synonyms</p>
+            <p className="text-xs font-mono font-medium text-muted-foreground uppercase tracking-wider mb-3 text-center">
+              Synonyms
+            </p>
             {word.synonyms && word.synonyms.length > 0 ? (
               <div className="space-y-3">
                 {/* STRONGEST */}
@@ -179,13 +181,13 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
                 {/* WEAK */}
                 {word.synonyms_weak && word.synonyms_weak.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-zinc-500 mb-1.5">WEAK</p>
+                    <p className="text-xs font-semibold text-muted-foreground/60 mb-1.5">WEAK</p>
                     <div className="flex flex-wrap gap-2">
                       {word.synonyms_weak.map((s: string) => (
                         <Badge
                           key={s}
                           variant="outline"
-                          className="text-sm px-3 py-1 border-zinc-400 text-zinc-600 bg-zinc-50"
+                          className="text-sm px-3 py-1 border-muted-foreground/20 text-muted-foreground/70 bg-muted/50"
                         >
                           {s}
                         </Badge>
@@ -195,7 +197,7 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
                 )}
               </div>
             ) : (
-              <p className="text-center text-zinc-400 text-sm">
+              <p className="text-center text-muted-foreground/50 text-sm">
                 No synonyms available.
               </p>
             )}
@@ -203,7 +205,9 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
 
           {/* Antonyms */}
           <div className="w-full">
-            <p className="text-sm font-medium text-zinc-500 mb-3">Antonyms</p>
+            <p className="text-xs font-mono font-medium text-muted-foreground uppercase tracking-wider mb-3 text-center">
+              Antonyms
+            </p>
             {word.antonyms && word.antonyms.length > 0 ? (
               <div className="space-y-3">
                 {word.antonyms_strongest && word.antonyms_strongest.length > 0 && (
@@ -228,17 +232,17 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
                 )}
                 {word.antonyms_weak && word.antonyms_weak.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-zinc-500 mb-1.5">WEAK</p>
+                    <p className="text-xs font-semibold text-muted-foreground/60 mb-1.5">WEAK</p>
                     <div className="flex flex-wrap gap-2 justify-center">
                       {word.antonyms_weak.map((a: string) => (
-                        <Badge key={a} variant="outline" className="text-sm px-3 py-1 border-zinc-400 text-zinc-600 bg-zinc-50">{a}</Badge>
+                        <Badge key={a} variant="outline" className="text-sm px-3 py-1 border-muted-foreground/20 text-muted-foreground/70 bg-muted/50">{a}</Badge>
                       ))}
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <p className="text-center text-zinc-400 text-sm">
+              <p className="text-center text-muted-foreground/50 text-sm">
                 No antonyms available.
               </p>
             )}

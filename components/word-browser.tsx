@@ -49,7 +49,7 @@ export function WordBrowser({ words, initialDate }: WordBrowserProps) {
             onSelect={handleDateSelect}
           />
           <div className="text-center py-16">
-            <p className="text-zinc-500">No word found for this date.</p>
+            <p className="text-muted-foreground">No word found for this date.</p>
           </div>
         </div>
       </div>
@@ -198,10 +198,10 @@ export function WordBrowser({ words, initialDate }: WordBrowserProps) {
                 {/* WEAK */}
                 {w.synonyms_weak && w.synonyms_weak.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-zinc-500 mb-2">WEAK</p>
+                    <p className="text-xs font-semibold text-muted-foreground/60 mb-2">WEAK</p>
                     <div className="flex flex-wrap justify-center gap-2">
                       {w.synonyms_weak.map((s: string) => (
-                        <Badge key={s} variant="outline" className="text-sm px-3 py-1 border-zinc-400 text-zinc-600 bg-zinc-50">
+                        <Badge key={s} variant="outline" className="text-sm px-3 py-1 border-muted-foreground/20 text-muted-foreground/70 bg-muted/50">
                           {s}
                         </Badge>
                       ))}
@@ -210,7 +210,7 @@ export function WordBrowser({ words, initialDate }: WordBrowserProps) {
                 )}
               </div>
             ) : (
-              <p className="text-center text-zinc-400 text-sm">
+              <p className="text-center text-muted-foreground/50 text-sm">
                 No synonyms available.
               </p>
             )}
@@ -240,17 +240,17 @@ export function WordBrowser({ words, initialDate }: WordBrowserProps) {
                 )}
                 {w.antonyms_weak && w.antonyms_weak.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-zinc-500 mb-2">WEAK</p>
+                    <p className="text-xs font-semibold text-muted-foreground/60 mb-2">WEAK</p>
                     <div className="flex flex-wrap justify-center gap-2">
                       {w.antonyms_weak.map((s: string) => (
-                        <Badge key={s} variant="outline" className="text-sm px-3 py-1 border-zinc-400 text-zinc-600 bg-zinc-50">{s}</Badge>
+                        <Badge key={s} variant="outline" className="text-sm px-3 py-1 border-muted-foreground/20 text-muted-foreground/70 bg-muted/50">{s}</Badge>
                       ))}
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <p className="text-center text-zinc-400 text-sm">
+              <p className="text-center text-muted-foreground/50 text-sm">
                 No antonyms available.
               </p>
             )}

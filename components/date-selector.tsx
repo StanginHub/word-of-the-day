@@ -81,11 +81,11 @@ export default function DateSelector({
                 "border cursor-pointer",
                 isActive
                   ? "bg-accent text-white border-accent shadow-sm"
-                  : "bg-white text-zinc-600 border-zinc-200 hover:border-amber-300 hover:text-zinc-900"
+                  : "bg-white text-muted-foreground border-border hover:border-accent/60 hover:text-accent"
               )}
             >
               <span className="font-semibold">{formatDateLabel(w.fetched_date)}</span>
-              <span className="mx-1.5 text-zinc-400">—</span>
+              <span className="mx-1.5 text-muted-foreground/40">—</span>
               <span>{w.word}</span>
             </button>
           );
