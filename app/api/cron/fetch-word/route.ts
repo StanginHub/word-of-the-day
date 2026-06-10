@@ -23,9 +23,9 @@ type DictEntry = {
 
 // ---------- helpers ----------
 
-/** Today in YYYY-MM-DD (UTC). */
+/** Today in YYYY-MM-DD (Thailand time, UTC+7). */
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
 }
 
 // ---------- step 1: Oxford scraper ----------
