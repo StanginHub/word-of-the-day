@@ -24,15 +24,9 @@ export interface DailyWord {
   fetched_date: string;
 }
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ date?: string }>;
-}) {
-  const params = await searchParams;
+export default async function HomePage() {
   const supabase = await createClient();
 
-  // Fetch all words ordered by fetched_date descending
   const { data: words, error } = await supabase
     .from("daily_words")
     .select("*")
@@ -40,34 +34,24 @@ export default async function HomePage({
 
   if (error || !words || words.length === 0) {
     return (
-      <div className="flex flex-1 flex-col items-center px-4 py-12">
+      <div className="flex flex-1 flex-col items-center px-4 py-16">
         <div className="w-full max-w-3xl text-center py-16">
-          <h1 className="text-2xl font-semibold text-zinc-700">
-            No words available yet.
-          </h1>
-          <p className="mt-2 text-zinc-500">
-            Check back soon — new words are on their way!
-          </p>
+          <h1 className="text-2xl font-semibold text-foreground">No words yet.</h1>
+          <p className="mt-2 text-muted-foreground">Check back soon.</p>
         </div>
       </div>
     );
   }
 
-  // Determine initial date: URL param > today > most recent word
-  const today = new Date().toISOString().split("T")[0];
-  const initialDate = params.date || today;
-
   return (
     <Suspense
       fallback={
-        <div className="flex flex-1 flex-col items-center px-4 py-12">
-          <div className="w-full max-w-3xl text-center py-16">
-            <p className="text-zinc-500">Loading words...</p>
-          </div>
+        <div className="flex flex-1 flex-col items-center px-4 py-16">
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       }
     >
-      <WordBrowser words={words as DailyWord[]} initialDate={initialDate} />
+      <WordBrowser words={words as DailyWord[]} />
     </Suspense>
   );
 }
