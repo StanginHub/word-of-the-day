@@ -42,7 +42,7 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton
-        className="sm:max-w-md max-h-[85vh] overflow-y-auto"
+        className="max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-xl sm:max-w-lg p-5 sm:p-6 gap-0"
       >
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center">

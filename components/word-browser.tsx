@@ -78,19 +78,19 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
           {hasData ? (
             <div className="space-y-4">
               {w.synonyms_strongest && w.synonyms_strongest.length > 0 && (
-                <div className="bg-emerald-50/40 rounded-xl p-4 border border-emerald-200/40">
-                  <p className="text-[11px] font-semibold text-emerald-700 tracking-wider uppercase mb-2">Strongest</p>
-                  <BadgesOf words={w.synonyms_strongest} color="emerald" />
-                </div>
-              )}
-              {w.synonyms_strong && w.synonyms_strong.length > 0 && (
-                <div className="bg-blue-50/40 rounded-xl p-4 border border-blue-200/40">
+                <div className="bg-emerald-50/40 rounded-xl p-3 sm:p-3 sm:p-4 border border-emerald-200/40">
+                <p className="text-[11px] font-semibold text-emerald-700 tracking-wider uppercase mb-2">Strongest</p>
+                <BadgesOf words={w.synonyms_strongest} color="emerald" />
+              </div>
+            )}
+            {w.synonyms_strong && w.synonyms_strong.length > 0 && (
+              <div className="bg-blue-50/40 rounded-xl p-3 sm:p-3 sm:p-4 border border-blue-200/40">
                   <p className="text-[11px] font-semibold text-blue-700 tracking-wider uppercase mb-2">Strong</p>
                   <BadgesOf words={w.synonyms_strong} color="blue" />
                 </div>
               )}
               {w.synonyms_weak && w.synonyms_weak.length > 0 && (
-                <div className="bg-muted/40 rounded-xl p-4 border border-border/50">
+                <div className="bg-muted/40 rounded-xl p-3 sm:p-4 border border-border/50">
                   <p className="text-[11px] font-semibold text-muted-foreground/60 tracking-wider uppercase mb-2">Weak</p>
                   <BadgesOf words={w.synonyms_weak} color="muted" />
                 </div>
@@ -106,19 +106,19 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
             {w.antonyms && w.antonyms.length > 0 ? (
               <div className="space-y-4">
                 {w.antonyms_strongest && w.antonyms_strongest.length > 0 && (
-                  <div className="bg-emerald-50/40 rounded-xl p-4 border border-emerald-200/40">
+                  <div className="bg-emerald-50/40 rounded-xl p-3 sm:p-4 border border-emerald-200/40">
                     <p className="text-[11px] font-semibold text-emerald-700 tracking-wider uppercase mb-2">Strongest</p>
                     <BadgesOf words={w.antonyms_strongest!} color="emerald" />
                   </div>
                 )}
                 {w.antonyms_strong && w.antonyms_strong.length > 0 && (
-                  <div className="bg-blue-50/40 rounded-xl p-4 border border-blue-200/40">
+                  <div className="bg-blue-50/40 rounded-xl p-3 sm:p-4 border border-blue-200/40">
                     <p className="text-[11px] font-semibold text-blue-700 tracking-wider uppercase mb-2">Strong</p>
                     <BadgesOf words={w.antonyms_strong!} color="blue" />
                   </div>
                 )}
                 {w.antonyms_weak && w.antonyms_weak.length > 0 && (
-                  <div className="bg-muted/40 rounded-xl p-4 border border-border/50">
+                  <div className="bg-muted/40 rounded-xl p-3 sm:p-4 border border-border/50">
                     <p className="text-[11px] font-semibold text-muted-foreground/60 tracking-wider uppercase mb-2">Weak</p>
                     <BadgesOf words={w.antonyms_weak!} color="muted" />
                   </div>
@@ -161,19 +161,27 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
             </h1>
             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-[3px] rounded-full bg-accent/40" />
 
-            {/* copy button */}
+          {/* copy row */}
+          <div className="flex items-center justify-center gap-3 sm:p-4 mt-1 mb-2">
             <button
               onClick={handleCopy}
-              className="absolute -right-10 top-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-muted-foreground/40 hover:text-accent"
+              className="inline-flex items-center gap-1.5 text-xs font-mono text-muted-foreground/40 hover:text-accent active:text-accent transition-colors"
               aria-label="Copy word"
               title="Copy word + definition"
             >
               {copied ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+                  Copied
+                </>
               ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  Copy
+                </>
               )}
             </button>
+          </div>
           </div>
 
           {/* IPA + PoS */}
