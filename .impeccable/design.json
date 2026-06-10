@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-10T17:43:33.088965Z",
+  "title": "Design System: Word of the Day",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "ink",
+        "displayName": "Ink Black",
+        "canonical": "#1a1a1a",
+        "tonalRamp": [
+          "#0a0a0a",
+          "#141414",
+          "#1a1a1a",
+          "#262626",
+          "#333333",
+          "#404040",
+          "#525252",
+          "#666666"
+        ]
+      },
+      "accent": {
+        "role": "accent",
+        "displayName": "Reference Blue",
+        "canonical": "#1d4ed8",
+        "tonalRamp": [
+          "#172554",
+          "#1e3a8a",
+          "#1d4ed8",
+          "#2563eb",
+          "#3b82f6",
+          "#60a5fa",
+          "#93c5fd",
+          "#dbeafe"
+        ]
+      },
+      "bg": {
+        "role": "background",
+        "displayName": "White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#f8fafc",
+          "#f1f5f9",
+          "#e2e8f0",
+          "#cbd5e1",
+          "#94a3b8",
+          "#64748b",
+          "#475569",
+          "#334155"
+        ]
+      }
+    },
+    "shadows": [
+      {
+        "name": "modal-overlay",
+        "value": "0 25px 50px -12px rgba(0,0,0,0.25)",
+        "purpose": "Dialog backdrop"
+      },
+      {
+        "name": "interactive-hover",
+        "value": "0 4px 12px rgba(0,0,0,0.08)",
+        "purpose": "Button and card hover lift"
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "All state transitions"
+      },
+      {
+        "name": "ease-modal",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Modal enter/exit"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "html": "<button class=\"ds-btn-primary\">VIEW DETAILS</button>",
+      "css": ".ds-btn-primary { background: #1a1a1a; color: #fff; padding: 8px 20px; font-family: Geist, ui-sans-serif, sans-serif; font-size: 0.8125rem; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; border: none; border-radius: 12px; cursor: pointer; transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease; } .ds-btn-primary:hover { background: rgba(26,26,26,0.8); box-shadow: 0 4px 12px rgba(0,0,0,0.08); } .ds-btn-primary:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }"
+    },
+    {
+      "name": "Accent Badge",
+      "kind": "chip",
+      "refersTo": "badge-accent",
+      "html": "<span class=\"ds-badge-accent\">&#x0E15;&#x0E30;&#x0E25;&#x0E36;&#x0E07;</span>",
+      "css": ".ds-badge-accent { display: inline-flex; align-items: center; background: #dbeafe; color: #1e3a8a; padding: 2px 10px; font-family: Noto Sans Thai, ui-sans-serif, sans-serif; font-size: 0.8125rem; font-weight: 500; border-radius: 9999px; border: 1px solid #dbeafe; }"
+    },
+    {
+      "name": "Date Chip Active",
+      "kind": "chip",
+      "refersTo": "date-chip-active",
+      "html": "<span class=\"ds-date-chip-active\">Jun 10</span>",
+      "css": ".ds-date-chip-active { display: inline-flex; align-items: center; background: #1d4ed8; color: #fff; padding: 4px 12px; font-family: Geist, ui-sans-serif, sans-serif; font-size: 0.75rem; font-weight: 600; border-radius: 9999px; cursor: pointer; white-space: nowrap; }"
+    },
+    {
+      "name": "Word Header",
+      "kind": "custom",
+      "refersTo": "word-header",
+      "html": "<div class=\"ds-word-header\"><h1 class=\"ds-word-title\">flabbergasted</h1><span class=\"ds-word-ipa\">/ipsum/</span></div>",
+      "css": ".ds-word-header { text-align: center; margin-bottom: 24px; } .ds-word-title { font-family: Geist, ui-sans-serif, sans-serif; font-size: clamp(2.5rem, 5vw, 3.75rem); font-weight: 700; line-height: 1.1; letter-spacing: -0.03em; color: #1a1a1a; margin: 0 0 8px; } .ds-word-ipa { font-family: Geist Mono, monospace; font-size: 1.125rem; color: #64748b; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Modern Reference",
+    "overview": "A single-minded commitment to editorial clarity. Like a well-designed dictionary app \u2014 confident black ink on crisp white, typographic hierarchy that guides the eye without decoration, and exactly one accent color used sparingly.",
+    "keyCharacteristics": [
+      "Pure monochrome foundation",
+      "Single accent \u226410% per screen",
+      "Generous whitespace",
+      "Content-first",
+      "Flat surfaces at rest"
+    ],
+    "rules": [
+      {
+        "name": "The 90/10 Rule",
+        "body": "The accent covers \u226410% of any screen.",
+        "section": "colors"
+      },
+      {
+        "name": "The No-Warm-Tint Rule",
+        "body": "Body backgrounds are white (chroma 0).",
+        "section": "colors"
+      },
+      {
+        "name": "The One Family Rule",
+        "body": "One typeface (Geist), multiple weights.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Surfaces are flat at rest.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Use generous whitespace (24px min between blocks)",
+      "Keep accent blue \u226410% per screen",
+      "Render Thai in Noto Sans Thai at 1.8 line-height",
+      "One typeface throughout"
+    ],
+    "donts": [
+      "No warm page tints (cream/sand/paper)",
+      "No decoration (gradients, glassmorphism, large radii)",
+      "No border-left accent stripes",
+      "No all-caps body text",
+      "No second typeface"
+    ]
+  }
+}

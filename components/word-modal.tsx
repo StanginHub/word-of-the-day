@@ -126,7 +126,7 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
                   <Badge
                     key={t}
                     variant="default"
-                    className="text-sm px-3 py-1 bg-amber-100 text-amber-800 border-amber-200"
+                    className="text-sm px-3 py-1 bg-accent/10 text-accent border-accent/20"
                   >
                     {t}
                   </Badge>

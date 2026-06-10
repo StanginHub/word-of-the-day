@@ -80,7 +80,7 @@ export default function DateSelector({
                 "flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all",
                 "border cursor-pointer",
                 isActive
-                  ? "bg-amber-500 text-white border-amber-500 shadow-sm"
+                  ? "bg-accent text-white border-accent shadow-sm"
                   : "bg-white text-zinc-600 border-zinc-200 hover:border-amber-300 hover:text-zinc-900"
               )}
             >

@@ -69,16 +69,16 @@ export function WordBrowser({ words, initialDate }: WordBrowserProps) {
         />
 
         {/* Word Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-5xl font-bold tracking-tight text-zinc-900 mb-2">
+        <div className="text-center mb-8">
+          <h1 className="font-bold tracking-tight text-primary mb-3" style={{fontSize: "clamp(2.5rem, 5vw, 3.75rem)", lineHeight: 1.1, letterSpacing: "-0.03em"}}>
             {w.word}
           </h1>
-          <div className="flex items-center justify-center gap-3 text-zinc-500">
+          <div className="flex items-center justify-center gap-3 text-muted-foreground">
             {w.ipa && (
-              <span className="text-lg font-mono">/{w.ipa}/</span>
+              <span className="text-lg font-mono tracking-tight">/{w.ipa}/</span>
             )}
             {w.pos && (
-              <Badge variant="secondary" className="text-sm">
+              <Badge variant="secondary" className="text-xs uppercase tracking-wider">
                 {w.pos}
               </Badge>
             )}
@@ -88,7 +88,7 @@ export function WordBrowser({ words, initialDate }: WordBrowserProps) {
         {/* Definition */}
         {w.definition && (
           <div className="mb-6">
-            <p className="text-lg text-zinc-700 leading-relaxed text-center">
+            <p className="text-lg leading-relaxed text-center max-w-prose mx-auto text-foreground/85">
               {w.definition}
             </p>
           </div>
@@ -96,29 +96,29 @@ export function WordBrowser({ words, initialDate }: WordBrowserProps) {
 
         {/* CEFR + Topic Badges */}
         {(w.cefr || w.topic) && (
-          <div className="mb-4 flex flex-wrap gap-2 justify-center">
+          <div className="mb-5 flex flex-wrap gap-2 justify-center">
             {w.cefr && (
-              <Badge variant="outline" className="text-xs border-purple-500 text-purple-700">
-                CEFR {w.cefr}
+              <Badge variant="outline" className="text-xs border-accent/40 text-accent bg-accent/5">
+                {w.cefr}
               </Badge>
             )}
             {w.topic && (
-              <Badge variant="outline" className="text-xs border-indigo-500 text-indigo-700">
+              <Badge variant="outline" className="text-xs border-border text-muted-foreground">
                 {w.topic}
               </Badge>
             )}
           </div>
         )}
 
-        {/* Examples (up to 2) */}
+        {/* Examples */}
         {w.examples && w.examples.length > 0 && (
-          <div className="mb-4">
-            <p className="text-sm font-medium text-zinc-500 mb-2">
-              🗣️ Examples:
+          <div className="mb-5">
+            <p className="text-xs font-mono font-medium text-muted-foreground uppercase tracking-wider mb-2 text-center">
+              Examples
             </p>
-            <ul className="space-y-1.5">
+            <ul className="space-y-2">
               {w.examples.slice(0, 2).map((ex: string, i: number) => (
-                <li key={i} className="text-sm text-zinc-600 italic text-center">
+                <li key={i} className="text-sm text-muted-foreground italic text-center max-w-prose mx-auto">
                   &ldquo;{ex}&rdquo;
                 </li>
               ))}
@@ -128,18 +128,18 @@ export function WordBrowser({ words, initialDate }: WordBrowserProps) {
 
         {/* Etymology */}
         {w.etymology && (
-          <div className="mb-4">
-            <p className="text-sm text-zinc-500 italic text-center">
-              📖 {w.etymology}
+          <div className="mb-5">
+            <p className="text-xs text-muted-foreground/70 italic text-center font-mono">
+              {w.etymology}
             </p>
           </div>
         )}
 
         {/* Thai Translations */}
         {w.thai_translations && w.thai_translations.length > 0 && (
-          <div className="mb-6">
-            <p className="text-sm font-medium text-zinc-500 mb-2 text-center">
-              🇹🇭 คำแปล:
+          <div className="mb-8">
+            <p className="text-xs font-mono font-medium text-muted-foreground uppercase tracking-wider mb-3 text-center">
+              Thai
             </p>
             <div className="flex flex-wrap gap-2 justify-center">
               {w.thai_translations.map((t: string) => (
@@ -147,8 +147,8 @@ export function WordBrowser({ words, initialDate }: WordBrowserProps) {
                   key={t}
                   variant="default"
                   className={cn(
-                    "text-sm px-3 py-1",
-                    "bg-amber-100 text-amber-800 border-amber-200"
+                    "text-sm px-3 py-1 font-medium",
+                    "bg-accent/10 text-accent border-accent/20 hover:bg-accent/15"
                   )}
                 >
                   {t}
@@ -158,7 +158,7 @@ export function WordBrowser({ words, initialDate }: WordBrowserProps) {
           </div>
         )}
 
-        <Separator className="mb-6" />
+        <Separator className="mb-8" />
 
         {/* Synonyms / Antonyms Tabs */}
         <Tabs defaultValue="synonyms" className="mb-6">
@@ -261,7 +261,7 @@ export function WordBrowser({ words, initialDate }: WordBrowserProps) {
 
         {/* View Details Button */}
         <div className="flex justify-center">
-          <Button variant="outline" onClick={() => setModalOpen(true)}>
+          <Button variant="default" onClick={() => setModalOpen(true)}>
             View Details
           </Button>
         </div>
