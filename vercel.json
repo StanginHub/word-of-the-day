@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/fetch-word",
-      "schedule": "0 5 * * *"
+      "schedule": "15 0 * * *"
     }
   ]
 }
