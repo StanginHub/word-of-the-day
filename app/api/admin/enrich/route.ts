@@ -26,13 +26,6 @@ async function backTranslate(thai: string): Promise<string[]> {
   } catch { return []; }
 }
 
-function defKeywords(def: string): string[] {
-  return def.toLowerCase()
-    .replace(/[^a-z\s]/g,"")
-    .split(/\s+/)
-    .filter(w => w.length>3 && !["that","with","this","which","from","about","what","when","where","than","there","their","would","could","should","after","before","between","without","through","during","because","about","being","having","doing","something","someone","somebody","itself","themselves","himself","herself","itself","yourself","myself"].includes(w));
-}
-
 export async function POST(request: Request) {
   if (!check(request)) return unauth();
   const su = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -40,16 +33,32 @@ export async function POST(request: Request) {
   if (!su || !sk) return NextResponse.json({error:"DB not configured"},{status:500});
   try {
     const sb = createClient(su, sk);
-    const { data: words } = await sb.from("daily_words").select("word,fetched_date").order("fetched_date",{ascending:false});
+    const { data: words } = await sb.from("daily_words").select("word,fetched_date,synonyms,synonyms_strongest,synonyms_strong,synonyms_weak,definition").order("fetched_date",{ascending:false});
     if (!words || words.length === 0) return NextResponse.json({success:true, enriched:0});
 
     const origin = new URL(request.url).origin;
     const secret = process.env.CRON_SECRET;
     let done = 0, fail = 0, filtered = 0;
 
+    // Build a set of valid English words from thesaurus + definition
+    function getValidWords(row: typeof words[0]): Set<string> {
+      const s = new Set<string>();
+      // Add all thesaurus synonyms for this word's specific meaning
+      for (const list of [row.synonyms_strongest, row.synonyms_strong, row.synonyms_weak, row.synonyms]) {
+        if (Array.isArray(list)) list.forEach((w: string) => s.add(w.toLowerCase()));
+      }
+      // Add definition words (short words too)
+      if (row.definition) {
+        row.definition.toLowerCase().replace(/[^a-z\s]/g,"").split(/\s+/).forEach((w: string) => {
+          if (w.length > 2) s.add(w);
+        });
+      }
+      return s;
+    }
+
     for (const w of words) {
       try {
-        // Fetch enriched data (includes thai_translations + definition)
+        // Fetch enriched data
         const res = await fetch(origin+"/api/cron/fetch-word",{
           method:"POST",
           headers:{"Authorization":B+secret,"Content-Type":"application/json"},
@@ -60,28 +69,28 @@ export async function POST(request: Request) {
         if (!data.success) { fail++; continue; }
 
         const translations: string[] = data.thai_translations || [];
-        const def: string = data.definition || "";
-
         if (translations.length === 0) { done++; continue; }
 
-        // Round-trip validation: keep only translations whose back-translated
-        // English overlaps with the Oxford definition
-        const keywords = defKeywords(def);
-        const validated: string[] = [];
+        // Get valid English words for this word's specific meaning
+        // Re-fetch from DB since the word data changed after cron upsert
+        const { data: fresh } = await sb.from("daily_words")
+          .select("synonyms_strongest,synonyms_strong,synonyms_weak,synonyms,definition")
+          .eq("fetched_date", w.fetched_date).single();
+        const validWords = getValidWords(fresh||w);
 
+        const validated: string[] = [];
         for (const t of translations) {
           const back = await backTranslate(t);
-          // Check if any back-translated word overlaps with definition keywords
-          const match = back.some(bw => keywords.some(kw => bw.includes(kw) || kw.includes(bw)));
-          if (match || keywords.length === 0) {
-            validated.push(t);
-          } else {
-            filtered++;
-          }
+          const match = back.some(bw => {
+            const b = bw.toLowerCase().trim();
+            return Array.from(validWords).some(vw => b === vw || b.includes(vw) || vw.includes(b));
+          });
+          if (match) validated.push(t);
+          else filtered++;
         }
 
-        // Update DB with validated translations only
-        if (validated.length > 0 && validated.length !== translations.length) {
+        // Update DB with validated translations
+        if (validated.length > 0) {
           await sb.from("daily_words").update({thai_translations: validated}).eq("fetched_date", w.fetched_date);
         }
 
