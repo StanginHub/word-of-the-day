@@ -416,14 +416,14 @@ async function fetchDatamuse(
 
 async function fetchThaiTranslations(
   word: string,
-  synonyms?: string[]
+  synonyms?: string[],
+  definition?: string
 ): Promise<string[]> {
   const translations = new Set<string>();
 
   // Collect words to translate: the main word + top synonyms (for nuance)
   const wordsToTranslate = [word];
   if (synonyms && synonyms.length > 0) {
-    // Take up to 5 synonyms that are single words (no spaces)
     const topSynonyms = synonyms
       .filter((s) => !s.includes(" "))
       .slice(0, 5);
@@ -453,7 +453,7 @@ async function fetchThaiTranslations(
     }
   }
 
-  // Strategy 2: Free endpoint — translate word + synonyms
+  // Strategy 2: Free endpoint — translate bare word + synonyms
   for (const w of wordsToTranslate) {
     try {
       const res = await fetch(
@@ -472,25 +472,65 @@ async function fetchThaiTranslations(
     } catch { /* silent */ }
   }
 
-  // Strategy 3: Dictionary mode (md) for alternative translations
+  // Strategy 3: Dictionary mode (dt=md) for alternative translations
   try {
     const res = await fetch(
       `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=th&dt=t&dt=md&q=${encodeURIComponent(word)}`
     );
     if (res.ok) {
       const data = await res.json();
-      // Recursively extract all Thai strings from nested arrays
       const extractThai = (obj: unknown) => {
         if (typeof obj === "string" && /[\u0E00-\u0E7F]/.test(obj)) {
           translations.add(obj);
         } else if (Array.isArray(obj)) {
-          for (const item of obj) extractThai(item);
+          obj.forEach(extractThai);
         }
       };
       extractThai(data);
     }
-  } catch {
-    // silent fail
+  } catch { /* silent */ }
+
+  // Strategy 4: Translate the Oxford DEFINITION for contextually accurate Thai
+  // A bare word can have multiple meanings; translating the definition
+  // disambiguates and gives us Thai words matching the specific meaning.
+  const thaiStopWords = new Set([
+    "และ", "หรือ", "ที่", "ของ", "ใน", "การ", "ความ", "เป็น",
+    "ให้", "มี", "ไม่", "จะ", "ได้", "นี้", "นั้น", "กับ",
+    "เพื่อ", "โดย", "จาก", "แต่", "ว่า", "อย่าง", "หรือไม่",
+    "ซึ่ง", "ก็", "นะ", "คะ", "ครับ", "ค่ะ",
+  ]);
+
+  if (definition) {
+    try {
+      const res = await fetch(
+        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=th&dt=t&q=${encodeURIComponent(definition.slice(0, 200))}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        let thaiText = "";
+        if (Array.isArray(data?.[0])) {
+          for (const item of data[0]) {
+            if (Array.isArray(item) && item[0] && typeof item[0] === "string") {
+              thaiText += item[0];
+            }
+          }
+        }
+        // Extract meaningful Thai words/phrases (split by whitespace/punctuation)
+        const words = thaiText.split(/[\s,.;!?]+/).filter((w) => {
+          const t = w.trim();
+          if (!t || t.length < 2) return false;
+          if (thaiStopWords.has(t)) return false;
+          return /[\u0E00-\u0E7F]/.test(t);
+        });
+        for (const w of words) translations.add(w);
+
+        // Also add the first ~30 chars as a compact summary
+        if (thaiText.length > 5) {
+          const summary = thaiText.slice(0, 35) + (thaiText.length > 35 ? "..." : "");
+          translations.add(summary.trim());
+        }
+      }
+    } catch { /* silent */ }
   }
 
   return [...translations];
@@ -577,7 +617,7 @@ export async function POST(request: Request) {
   // ---- Thai translation via Google Translate ----
   let thai_translations: string[] = [];
   try {
-    thai_translations = await fetchThaiTranslations(entry.word, synonyms);
+    thai_translations = await fetchThaiTranslations(entry.word, synonyms, entry.definition);
   } catch (thaiErr) {
     console.warn("Thai translation fetch failed, continuing without it", thaiErr);
   }
