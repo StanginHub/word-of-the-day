@@ -14,6 +14,8 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
   const [search, setSearch] = useState("");
   const [showAnnPreview, setShowAnnPreview] = useState(false);
   const [annForm, setAnnForm] = useState({title:"", body:"", enabled:false});
+  const [logs, setLogs] = useState<Array<{id:number;action:string;detail:string|null;created_at:string}>>([]);
+  const [showLogs, setShowLogs] = useState(false);
 
   const bf = () => String.fromCharCode(66, 101, 97, 114, 101, 114);
   const auth = () => ({ "Content-Type": "application/json", Authorization: bf() + " " + secret });
@@ -27,7 +29,7 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
     if (!res) return flash("error", "Network error");
     if (res.status===401) { setAuthed(false); flash("error", "Wrong secret"); return; }
     const data = await res.json();
-    if (res.ok) flash("success", label + " done" + (data.imported ? " (" + data.imported + " words)" : ""));
+    if (res.ok) { flash("success", label + " done" + (data.imported ? " (" + data.imported + " words)" : "")); logIt(label); }
     else flash("error", label + " failed");
   };
 
@@ -70,8 +72,39 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
     setLoading(true);
     const res = await fetch("/api/admin/announcement", { method: "POST", headers: auth(), body: JSON.stringify(annForm) }).catch(() => null);
     setLoading(false);
-    if (res?.ok) flash("success", "Announcement saved!");
+    if (res?.ok) { flash("success", "Announcement saved!"); logIt("Announcement saved"); }
     else flash("error", "Failed");
+  };
+
+  const logIt = async (action:string, detail?:string) => {
+    try {
+      await fetch("/api/admin/log", { method:"POST", headers:auth(), body:JSON.stringify({action, detail}) });
+      setLogs(prev => [{id:Date.now(), action, detail:detail||null, created_at:new Date().toISOString()}, ...prev]);
+    } catch {}
+  };
+
+  const exportJSON = async () => {
+    setLoading(true);
+    const res = await fetch("/api/admin/export", { headers: auth() }).catch(() => null);
+    setLoading(false);
+    if (!res) return flash("error", "Export failed");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "words-backup-" + new Date().toISOString().slice(0,10) + ".json";
+    a.click();
+    URL.revokeObjectURL(url);
+    flash("success", "Exported!");
+  };
+
+  const loadLogs = async () => {
+    setShowLogs(!showLogs);
+    if (showLogs) return;
+    try {
+      const res = await fetch("/api/admin/log", { headers: auth() });
+      const data = await res.json();
+      setLogs(data.logs || []);
+    } catch {}
   };
 
   const filtered = search.trim()
@@ -140,6 +173,8 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
               className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-lg text-xs font-semibold hover:bg-secondary/80 disabled:opacity-50 transition">Enrich</button>
             <button onClick={() => act("/api/admin/cleanup", "Cleanup")} disabled={loading}
               className="px-3 py-1.5 bg-destructive text-destructive-foreground rounded-lg text-xs font-semibold hover:bg-destructive/90 disabled:opacity-50 transition">Delete All</button>
+            <button onClick={exportJSON} disabled={loading}
+              className="px-3 py-1.5 bg-card text-foreground border border-border rounded-lg text-xs font-semibold hover:bg-muted disabled:opacity-50 transition">Export JSON</button>
           </div>
         </div>
         {/* Announcement */}
@@ -149,7 +184,7 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
             <input type="text" placeholder="Title" value={annForm.title}
               onChange={e => setAnnForm({...annForm, title: e.target.value})}
               className="w-full px-3 py-1.5 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-accent/30" />
-            <textarea rows={2} placeholder="Body (HTML supported)" value={annForm.body}
+            <textarea rows={2} placeholder="Announcement message" value={annForm.body}
               onChange={e => setAnnForm({...annForm, body: e.target.value})}
               className="w-full px-3 py-1.5 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-accent/30 resize-none" />
             <div className="flex gap-2 items-center">
@@ -258,7 +293,7 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
               <h2 className="text-lg font-bold">{annForm.title || "(no title)"}</h2>
             </div>
             <div className="px-6 pb-4 overflow-y-auto flex-1 min-h-0">
-              <div className="text-sm text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{__html: annForm.body || "(no body)"}} />
+              <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{annForm.body || "(no body)"}</div>
             </div>
             <div className="px-6 py-3 border-t border-border flex justify-center gap-2">
               <button onClick={() => setShowAnnPreview(false)}
@@ -267,6 +302,35 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
           </div>
         </div>
       )}
+
+      {/* ═══ Activity Log ═══ */}
+      <div className="border border-border rounded-xl overflow-hidden">
+        <button onClick={loadLogs}
+          className="w-full bg-muted/20 px-4 py-3 border-b border-border flex items-center justify-between hover:bg-muted/40 transition">
+          <span className="font-bold text-sm">Activity Log</span>
+          <span className={"text-muted-foreground/50 transition-transform " + (showLogs ? "rotate-180" : "")}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
+        </button>
+        {showLogs && (
+          <div className="p-4 max-h-[300px] overflow-y-auto">
+            {logs.length === 0
+              ? <p className="text-sm text-muted-foreground/50 text-center py-4">No logs yet</p>
+              : <div className="space-y-2">
+                  {logs.map(log => (
+                    <div key={log.id} className="flex items-start gap-3 text-xs">
+                      <span className="font-mono text-muted-foreground/50 shrink-0 w-20">
+                        {new Date(log.created_at).toLocaleString("en-US", {month:"short", day:"numeric", hour:"2-digit", minute:"2-digit"})}
+                      </span>
+                      <span className="font-medium">{log.action}</span>
+                      {log.detail && <span className="text-muted-foreground/60">— {log.detail}</span>}
+                    </div>
+                  ))}
+                </div>
+            }
+          </div>
+        )}
+      </div>
 
     </div>
   );

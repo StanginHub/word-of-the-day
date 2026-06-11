@@ -28,7 +28,7 @@ export function AnnouncementBanner() {
           <h2 className="text-lg font-bold text-foreground">{data.title}</h2>
         </div>
         <div className="px-6 pb-4 overflow-y-auto flex-1 min-h-0">
-          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{__html: data.body}} />
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{data.body}</p>
         </div>
         <div className="px-6 py-3 border-t border-border flex justify-center">
           <button onClick={dismiss}
