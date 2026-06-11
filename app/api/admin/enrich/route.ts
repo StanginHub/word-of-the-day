@@ -41,7 +41,8 @@ export async function POST(request: Request) {
     let done = 0, fail = 0, filtered = 0;
 
     // Build a set of valid English words from thesaurus + definition
-    function getValidWords(row: typeof words[0]): Set<string> {
+    type WordRow = {synonyms_strongest?:string[]|null;synonyms_strong?:string[]|null;synonyms_weak?:string[]|null;synonyms?:string[]|null;definition?:string|null};
+    function getValidWords(row: WordRow): Set<string> {
       const s = new Set<string>();
       // Add all thesaurus synonyms for this word's specific meaning
       for (const list of [row.synonyms_strongest, row.synonyms_strong, row.synonyms_weak, row.synonyms]) {
@@ -76,7 +77,13 @@ export async function POST(request: Request) {
         const { data: fresh } = await sb.from("daily_words")
           .select("synonyms_strongest,synonyms_strong,synonyms_weak,synonyms,definition")
           .eq("fetched_date", w.fetched_date).single();
-        const validWords = getValidWords(fresh||w);
+        const validWords = getValidWords({
+      synonyms_strongest: fresh?.synonyms_strongest || w.synonyms_strongest,
+      synonyms_strong: fresh?.synonyms_strong || w.synonyms_strong,
+      synonyms_weak: fresh?.synonyms_weak || w.synonyms_weak,
+      synonyms: fresh?.synonyms || w.synonyms,
+      definition: fresh?.definition || w.definition,
+    });
 
         const validated: string[] = [];
         for (const t of translations) {
