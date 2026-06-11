@@ -20,6 +20,9 @@ export async function GET(request: Request) {
 
     const cronSecret = process.env.CRON_SECRET || "dev-secret";
 
+    console.log("Triggering fetch with URL:", baseUrl);
+    console.log("CRON_SECRET exists:", !!process.env.CRON_SECRET);
+
     const response = await fetch(`${baseUrl}/api/cron/fetch-word`, {
       method: "POST",
       headers: {
@@ -30,6 +33,9 @@ export async function GET(request: Request) {
 
     const data = await response.json();
 
+    console.log("Fetch response status:", response.status);
+    console.log("Fetch response data:", data);
+
     return NextResponse.json(
       {
         success: response.ok,
@@ -39,9 +45,15 @@ export async function GET(request: Request) {
       { status: response.status }
     );
   } catch (err) {
+    console.error("Trigger fetch error:", err);
     return NextResponse.json(
       { error: String(err) },
       { status: 500 }
     );
   }
+}
+
+export async function POST(request: Request) {
+  // Also support POST method for consistency
+  return GET(request);
 }
