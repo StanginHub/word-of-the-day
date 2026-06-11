@@ -562,10 +562,28 @@ export async function POST(request: Request) {
 
   // ---- Thai translation via Google Translate ----
   let thai_translations: string[] = [];
-  try {
-    thai_translations = await fetchThaiTranslations(entry.word, synonyms, entry.definition);
-  } catch (thaiErr) {
-    console.warn("Thai translation fetch failed, continuing without it", thaiErr);
+  // Check if existing record has translations (preserve manual fixes)
+  const isOverride = overrideWord !== null;
+  if (isOverride) {
+    try {
+      const { createClient } = await import("@supabase/supabase-js");
+      const su = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const sk = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (su && sk) {
+        const sb = createClient(su, sk);
+        const existing = await sb.from("daily_words").select("thai_translations").eq("word", entry.word).single();
+        if (existing.data?.thai_translations?.length > 0) {
+          thai_translations = existing.data.thai_translations;
+        }
+      }
+    } catch { /* ignore */ }
+  }
+  if (thai_translations.length === 0) {
+    try {
+      thai_translations = await fetchThaiTranslations(entry.word);
+    } catch (thaiErr) {
+      console.warn("Thai translation fetch failed", thaiErr);
+    }
   }
 
   // ---- upsert into Supabase ----
