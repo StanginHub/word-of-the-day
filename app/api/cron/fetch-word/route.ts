@@ -416,75 +416,37 @@ async function fetchDatamuse(
 
 async function fetchThaiTranslations(
   word: string,
-  synonyms?: string[],
-  definition?: string
+  _synonyms?: string[],
+  _definition?: string
 ): Promise<string[]> {
   const translations = new Set<string>();
 
-  // Collect words to translate: skip the bare word (it often gives wrong
-  // meanings for polysemous words). Use synonyms only, which narrow the
-  // specific meaning from Thesaurus.com.
-  const wordsToTranslate: string[] = [];
-  if (synonyms && synonyms.length > 0) {
-    const topSynonyms = synonyms
-      .filter((s) => !s.includes(" "))
-      .slice(0, 6);
-    wordsToTranslate.push(...topSynonyms);
-  }
-  // Fallback: if no synonyms, translate the bare word as a last resort
-  if (wordsToTranslate.length === 0) wordsToTranslate.push(word);
-
-  // Strategy 1: DeepL API (free, no credit card needed)
+  // Translate the word directly via DeepL (most accurate)
   const deeplKey = process.env.DEEPL_API_KEY;
   if (deeplKey) {
-    for (const w of wordsToTranslate) {
-      try {
-        const res = await fetch("https://api-free.deepl.com/v2/translate", {
-          method: "POST",
-          headers: { "Authorization": "DeepL-Auth-Key " + deeplKey },
-          body: new URLSearchParams({ text: w, target_lang: "TH" }),
-          signal: AbortSignal.timeout(5000),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data?.translations) {
-            for (const t of data.translations) {
-              if (t.text) translations.add(t.text.trim());
-            }
+    try {
+      const res = await fetch("https://api-free.deepl.com/v2/translate", {
+        method: "POST",
+        headers: { "Authorization": "DeepL-Auth-Key " + deeplKey },
+        body: new URLSearchParams({ text: word, target_lang: "TH" }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.translations) {
+          for (const t of data.translations) {
+            if (t.text) translations.add(t.text.trim());
           }
         }
-      } catch { /* fall through */ }
-    }
+      }
+    } catch { /* fall through */ }
   }
 
-  // Strategy 2: Google Cloud API if key exists
-  const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
-  if (apiKey) {
-    for (const w of wordsToTranslate) {
-      try {
-        const res = await fetch(
-          `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ q: w, source: "en", target: "th", format: "text" }),
-          }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          for (const t of data?.data?.translations || []) {
-            if (t.translatedText) translations.add(t.translatedText.trim());
-          }
-        }
-      } catch { /* fall through */ }
-    }
-  }
-
-  // Strategy 2: Free endpoint — translate bare word + synonyms
-  for (const w of wordsToTranslate) {
+  // Fallback: Google Translate free endpoint
+  if (translations.size === 0) {
     try {
       const res = await fetch(
-        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=th&dt=t&q=${encodeURIComponent(w)}`
+        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=th&dt=t&q=${encodeURIComponent(word)}`
       );
       if (res.ok) {
         const data = await res.json();
@@ -499,7 +461,7 @@ async function fetchThaiTranslations(
     } catch { /* silent */ }
   }
 
-  // Strategy 3: Dictionary mode (dt=md) for alternative translations
+  // Also get dictionary mode alternatives for extra options
   try {
     const res = await fetch(
       `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=th&dt=t&dt=md&q=${encodeURIComponent(word)}`
@@ -516,11 +478,6 @@ async function fetchThaiTranslations(
       extractThai(data);
     }
   } catch { /* silent */ }
-
-  // Strategy 4: Translate definition (kept for context, but not the full sentence)
-  // We skip this because definition translations produce sentence fragments.
-  // Instead, we rely on synonym translations (Strategies 1-3) which are more accurate
-  // because synonyms narrow down the specific meaning.
 
   return [...translations];
 }
