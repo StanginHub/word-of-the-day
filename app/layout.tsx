@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Gentium_Plus } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
+import { BellGif } from "@/components/bell-gif";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,13 +50,7 @@ export default function RootLayout({
         </header>
         <main className="flex-1">{children}</main>
 
-        {/* Fixed bottom-right GIF */}
-        <img
-          src="/stang-bell.gif"
-          alt=""
-          className="fixed bottom-4 right-4 z-40 w-20 h-20 sm:w-24 sm:h-24 pointer-events-none select-none"
-          style={{ imageRendering: "auto" }}
-        />
+        <BellGif />
       </body>
     </html>
   );

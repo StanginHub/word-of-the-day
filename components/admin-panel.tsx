@@ -1,7 +1,62 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 type Word = {id:string;word:string;fetched_date:string;definition:string|null;pos:string|null;ipa:string|null;cefr:string|null;topic:string|null;thai_translations:string[]|null;synonyms:string[]|null};
+
+// ── Rich Text Toolbar ──
+const exec = (cmd:string, val?:string) => document.execCommand(cmd, false, val);
+
+function RichEditor({ value, onChange }: { value:string; onChange:(v:string)=>void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Map text → HTML
+  useEffect(() => {
+    if (ref.current && !ref.current.innerHTML) ref.current.innerHTML = value;
+  }, []);
+
+  const updateHtml = () => {
+    if (ref.current) onChange(ref.current.innerHTML);
+  };
+
+  return (
+    <div className="border border-border rounded-lg overflow-hidden">
+      {/* Toolbar */}
+      <div className="flex flex-wrap gap-0.5 p-1.5 bg-muted/30 border-b border-border">
+        {[
+          [() => exec("bold"), "B", "font-bold"],
+          [() => exec("italic"), "I", "italic"],
+          [() => exec("underline"), "U", "underline"],
+          ["|"],
+          [() => exec("formatBlock", "<h2>"), "H2", ""],
+          [() => exec("formatBlock", "<h3>"), "H3", ""],
+          [() => exec("formatBlock", "<p>"), "P", ""],
+          ["|"],
+          [() => exec("insertUnorderedList"), "•", ""],
+          [() => exec("insertOrderedList"), "1.", ""],
+          ["|"],
+          [() => {
+            const s = prompt("Font size (px):", "18");
+            if (s) exec("fontSize", "7"); // just flag, we'll use style
+            // exec fontSize and then set style
+          }, "Aa", ""],
+          [() => exec("removeFormat"), "Clear", "text-muted-foreground/60"],
+        ].map((btn, i) => {
+          if (btn[0] === "|") return <span key={i} className="w-px h-5 bg-border mx-0.5 self-center" />;
+          const [action, label, cls] = btn;
+          return <button key={i} onMouseDown={e => { e.preventDefault(); (action as Function)(); updateHtml(); }}
+            className={"px-2 py-0.5 rounded text-xs hover:bg-muted transition " + cls}>{label as string}</button>;
+        })}
+      </div>
+      {/* Editor */}
+      <div ref={ref} contentEditable
+        className="px-3 py-2 text-sm bg-background min-h-[100px] focus:outline-none"
+        onInput={updateHtml}
+        onBlur={updateHtml}
+        dangerouslySetInnerHTML={{__html: value}}
+      />
+    </div>
+  );
+}
 
 export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
   const [loading, setLoading] = useState(false);
@@ -17,8 +72,20 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
   const [logs, setLogs] = useState<Array<{id:number;action:string;detail:string|null;created_at:string}>>([]);
   const [showLogs, setShowLogs] = useState(false);
 
+  // Restore session
+  useEffect(() => {
+    const saved = sessionStorage.getItem("admin_secret");
+    if (saved) { setSecret(saved); setAuthed(true); }
+  }, []);
+
   const bf = () => String.fromCharCode(66, 101, 97, 114, 101, 114);
   const auth = () => ({ "Content-Type": "application/json", Authorization: bf() + " " + secret });
+
+  const doAuth = () => {
+    if (!secret.trim()) return;
+    setAuthed(true);
+    sessionStorage.setItem("admin_secret", secret);
+  };
 
   const flash = (t:string, text:string) => { setMsg({t,text}); setTimeout(() => setMsg(null), 4000); };
 
@@ -27,7 +94,7 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
     const res = await fetch(endpoint, { method: "POST", headers: auth() }).catch(() => null);
     setLoading(false);
     if (!res) return flash("error", "Network error");
-    if (res.status===401) { setAuthed(false); flash("error", "Wrong secret"); return; }
+    if (res.status===401) { setAuthed(false); sessionStorage.removeItem("admin_secret"); flash("error", "Wrong secret"); return; }
     const data = await res.json();
     if (res.ok) { flash("success", label + " done" + (data.imported ? " (" + data.imported + " words)" : "")); logIt(label); }
     else flash("error", label + " failed");
@@ -54,16 +121,18 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
     const res = await fetch("/api/admin/update-word", { method: "POST", headers: auth(), body: JSON.stringify(payload) }).catch(() => null);
     setLoading(false);
     if (!res) return flash("error", "Network error");
+    if (res.status===401) { setAuthed(false); sessionStorage.removeItem("admin_secret"); return flash("error", "Wrong secret"); }
     const data = await res.json();
     if (res.ok) { setEditing(null); flash("success", (editing?.word||"Word") + " saved!"); setTimeout(() => window.location.reload(), 1200); }
     else flash("error", data.error || "Failed");
   };
 
   const deleteWord = async (w: Word) => {
-    if (!confirm("Delete \"" + w.word + "\" (" + w.fetched_date + ")?\nThis cannot be undone.")) return;
+    if (!confirm("Delete \"" + w.word + "\"?\nThis cannot be undone.")) return;
     setLoading(true);
     const res = await fetch("/api/admin/update-word", { method: "DELETE", headers: auth(), body: JSON.stringify({ id: w.id }) }).catch(() => null);
     setLoading(false);
+    if (res?.status===401) { setAuthed(false); sessionStorage.removeItem("admin_secret"); flash("error", "Wrong secret"); return; }
     if (res?.ok) { flash("success", w.word + " deleted"); setTimeout(() => window.location.reload(), 1200); }
     else flash("error", "Delete failed");
   };
@@ -95,6 +164,7 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
     a.click();
     URL.revokeObjectURL(url);
     flash("success", "Exported!");
+    logIt("Export");
   };
 
   const loadLogs = async () => {
@@ -122,9 +192,9 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
           <p className="text-xs text-muted-foreground text-center mb-5">Enter your secret to manage words.</p>
           <div className="space-y-3">
             <input type="password" placeholder="Secret" value={secret}
-              onChange={e => setSecret(e.target.value)} onKeyDown={e => e.key === "Enter" && setAuthed(true)}
+              onChange={e => setSecret(e.target.value)} onKeyDown={e => e.key === "Enter" && doAuth()}
               className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-accent/30" />
-            <button onClick={() => setAuthed(true)}
+            <button onClick={doAuth}
               className="w-full px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition active:scale-[0.98]">Unlock</button>
           </div>
         </div>
@@ -184,9 +254,7 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
             <input type="text" placeholder="Title" value={annForm.title}
               onChange={e => setAnnForm({...annForm, title: e.target.value})}
               className="w-full px-3 py-1.5 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-accent/30" />
-            <textarea rows={2} placeholder="Announcement message" value={annForm.body}
-              onChange={e => setAnnForm({...annForm, body: e.target.value})}
-              className="w-full px-3 py-1.5 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-accent/30 resize-none" />
+            <RichEditor value={annForm.body} onChange={v => setAnnForm({...annForm, body: v})} />
             <div className="flex gap-2 items-center">
               <label className="flex items-center gap-2 cursor-pointer text-sm">
                 <input type="checkbox" checked={annForm.enabled} onChange={e => setAnnForm({...annForm, enabled: e.target.checked})} className="accent-accent" />
@@ -285,24 +353,6 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
         </div>
       )}
 
-      {/* ═══ Announcement Preview ═══ */}
-      {showAnnPreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6" onClick={() => setShowAnnPreview(false)}>
-          <div className="bg-background border border-border rounded-2xl w-full max-w-lg shadow-xl flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
-            <div className="text-center px-6 pt-6 pb-3">
-              <h2 className="text-lg font-bold">{annForm.title || "(no title)"}</h2>
-            </div>
-            <div className="px-6 pb-4 overflow-y-auto flex-1 min-h-0">
-              <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{annForm.body || "(no body)"}</div>
-            </div>
-            <div className="px-6 py-3 border-t border-border flex justify-center gap-2">
-              <button onClick={() => setShowAnnPreview(false)}
-                className="px-4 py-2 border border-border rounded-lg text-sm hover:bg-muted transition">Close</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ═══ Activity Log ═══ */}
       <div className="border border-border rounded-xl overflow-hidden">
         <button onClick={loadLogs}
@@ -331,6 +381,24 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
           </div>
         )}
       </div>
+
+      {/* ═══ Announcement Preview Popup ═══ */}
+      {showAnnPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6" onClick={() => setShowAnnPreview(false)}>
+          <div className="bg-background border border-border rounded-2xl w-full max-w-lg shadow-xl flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
+            <div className="text-center px-6 pt-6 pb-3">
+              <h2 className="text-lg font-bold">{annForm.title || "(no title)"}</h2>
+            </div>
+            <div className="px-6 pb-4 overflow-y-auto flex-1 min-h-0">
+              <div className="text-sm text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{__html: annForm.body || "(no body)"}} />
+            </div>
+            <div className="px-6 py-3 border-t border-border flex justify-center gap-2">
+              <button onClick={() => setShowAnnPreview(false)}
+                className="px-4 py-2 border border-border rounded-lg text-sm hover:bg-muted transition">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
