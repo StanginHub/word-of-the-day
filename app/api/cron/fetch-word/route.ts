@@ -434,7 +434,30 @@ async function fetchThaiTranslations(
   // Fallback: if no synonyms, translate the bare word as a last resort
   if (wordsToTranslate.length === 0) wordsToTranslate.push(word);
 
-  // Strategy 1: Cloud API if key exists (best quality)
+  // Strategy 1: DeepL API (free, no credit card needed)
+  const deeplKey = process.env.DEEPL_API_KEY;
+  if (deeplKey) {
+    for (const w of wordsToTranslate) {
+      try {
+        const res = await fetch("https://api-free.deepl.com/v2/translate", {
+          method: "POST",
+          headers: { "Authorization": "DeepL-Auth-Key " + deeplKey },
+          body: new URLSearchParams({ text: w, target_lang: "TH" }),
+          signal: AbortSignal.timeout(5000),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.translations) {
+            for (const t of data.translations) {
+              if (t.text) translations.add(t.text.trim());
+            }
+          }
+        }
+      } catch { /* fall through */ }
+    }
+  }
+
+  // Strategy 2: Google Cloud API if key exists
   const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
   if (apiKey) {
     for (const w of wordsToTranslate) {
