@@ -4,23 +4,27 @@ import { useState, useEffect } from "react";
 export function AnnouncementBanner() {
   const [data, setData] = useState<{title:string;body:string;enabled:boolean} | null>(null);
 
-  useEffect(() => {
-    const check = async () => {
-      try {
-        const res = await fetch("/api/announcement");
-        const d = await res.json();
-        if (!d.enabled) return;
-        // Simple hash that works with all Unicode
-        const key = d.title + "|" + d.body + "|" + (d.enabled ? "1" : "0");
+  const check = async (force = false) => {
+    try {
+      const res = await fetch("/api/announcement");
+      const d = await res.json();
+      if (!d.enabled) return;
+      // Skip hash check when forced (bell click)
+      if (!force) {
+        const key = d.title + "|" + d.body;
         const hash = key.length + "-" + key.slice(0, 20);
         if (sessionStorage.getItem("ann_hash") === hash) return;
         sessionStorage.setItem("ann_hash", hash);
-        setData(d);
-      } catch {}
-    };
+      }
+      setData(d);
+    } catch {}
+  };
+
+  useEffect(() => {
     check();
-    window.addEventListener("show-announcement", check);
-    return () => window.removeEventListener("show-announcement", check);
+    const handler = () => check(true); // force = true on bell click
+    window.addEventListener("show-announcement", handler);
+    return () => window.removeEventListener("show-announcement", handler);
   }, []);
 
   if (!data) return null;

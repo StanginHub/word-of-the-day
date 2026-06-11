@@ -1,57 +1,92 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 type Word = {id:string;word:string;fetched_date:string;definition:string|null;pos:string|null;ipa:string|null;cefr:string|null;topic:string|null;thai_translations:string[]|null;synonyms:string[]|null};
 
-// ── Rich Text Toolbar ──
-const exec = (cmd:string, val?:string) => document.execCommand(cmd, false, val);
+// ── WYSIWYG RichEditor ──
 
-function RichEditor({ value, onChange }: { value:string; onChange:(v:string)=>void }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
+function exec(cmd: string, val?: string) {
+  document.execCommand(cmd, false, val);
+}
 
-  const wrap = (before:string, after:string) => {
-    const ta = ref.current;
-    if (!ta) return;
-    const start = ta.selectionStart, end = ta.selectionEnd;
-    const text = ta.value;
-    const selected = text.substring(start, end);
-    const replaced = before + selected + after;
-    ta.value = text.substring(0, start) + replaced + text.substring(end);
-    ta.selectionStart = start + before.length;
-    ta.selectionEnd = start + before.length + selected.length;
-    ta.focus();
-    onChange(ta.value);
-  };
+function RichEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [sel, setSel] = useState<Range | null>(null);
 
-  const tags = [
-    ["B", "<b>", "</b>"], ["I", "<i>", "</i>"], ["U", "<u>", "</u>"],
+  // Restore selection before executing a command
+  const wrapCmd = useCallback((cmd: string, val?: string) => {
+    if (sel) {
+      const r = sel;
+      const s = window.getSelection();
+      if (s) { s.removeAllRanges(); s.addRange(r); }
+    }
+    exec(cmd, val);
+    if (ref.current) onChange(ref.current.innerHTML);
+    ref.current?.focus();
+  }, [sel, onChange]);
+
+  const updateSel = useCallback(() => {
+    const s = window.getSelection();
+    if (s && s.rangeCount > 0 && ref.current && ref.current.contains(s.anchorNode as Node)) {
+      setSel(s.getRangeAt(0).cloneRange());
+    }
+  }, []);
+
+  // Set initial content once on mount
+  useEffect(() => {
+    if (ref.current && ref.current.innerHTML !== value) {
+      ref.current.innerHTML = value;
+    }
+  }, []); // key prop handles remount
+
+  const onInput = useCallback(() => {
+    if (ref.current) onChange(ref.current.innerHTML);
+  }, [onChange]);
+
+  const toolbar = [
+    [() => { exec("bold"); onInput(); }, "B", "font-bold"],
+    [() => { exec("italic"); onInput(); }, "I", "italic"],
+    [() => { exec("underline"); onInput(); }, "U", "underline"],
     ["|"],
-    ["H2", "<h2>", "</h2>"], ["H3", "<h3>", "</h3>"],
+    [() => { exec("formatBlock", "<h2>"); onInput(); }, "H2", ""],
+    [() => { exec("formatBlock", "<h3>"); onInput(); }, "H3", ""],
+    [() => { exec("formatBlock", "<p>"); onInput(); }, "P", ""],
     ["|"],
-    ["•", "<ul><li>", "</li></ul>"],
-    ["1.", "<ol><li>", "</li></ol>"],
+    [() => { exec("insertUnorderedList"); onInput(); }, "•", ""],
+    [() => { exec("insertOrderedList"); onInput(); }, "1.", ""],
     ["|"],
-    ["Clear", "", ""],
+    [() => { exec("removeFormat"); onInput(); }, "Clear", "text-muted-foreground/60"],
   ];
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
-      <div className="flex flex-wrap gap-0.5 p-1.5 bg-muted/30 border-b border-border">
-        {tags.map((item, i) => {
-          if (item[0] === "|") return <span key={i} className="w-px h-5 bg-border mx-0.5 self-center" />;
-          const [label, before, after] = item;
-          return <button key={i} onMouseDown={e => { e.preventDefault(); wrap(before, after); }}
-            className={"px-2 py-0.5 rounded text-xs hover:bg-muted transition " + (label === "Clear" ? "text-muted-foreground/60 ml-auto" : "")}>{label}</button>;
+      <div className="flex flex-wrap gap-0.5 p-1.5 bg-muted/30 border-b border-border"
+        onMouseDown={e => e.preventDefault()} // Prevent losing selection
+      >
+        {toolbar.map((btn, i) => {
+          if (btn[0] === "|") return <span key={i} className="w-px h-5 bg-border mx-0.5 self-center" />;
+          const [action, label, cls] = btn;
+          return (
+            <button key={i} onMouseDown={e => { e.preventDefault(); (action as Function)(); }}
+              className={"px-2 py-0.5 rounded text-xs hover:bg-muted transition " + cls}>
+              {label as string}
+            </button>
+          );
         })}
       </div>
-      <textarea ref={ref} value={value} onChange={e => onChange(e.target.value)}
-        className="w-full px-3 py-2 text-sm bg-background min-h-[100px] resize-y focus:outline-none"
-        placeholder="Type announcement here..."
+      <div
+        ref={ref}
+        contentEditable
+        suppressContentEditableWarning
+        className="px-3 py-2 text-sm bg-background min-h-[120px] focus:outline-none"
+        onInput={onInput}
+        onMouseUp={updateSel}
+        onKeyUp={updateSel}
+        dangerouslySetInnerHTML={{ __html: value }}
       />
     </div>
   );
 }
-
 
 export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
   const [loading, setLoading] = useState(false);
@@ -118,7 +153,7 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
     if (!res) return flash("error", "Network error");
     if (res.status===401) { setAuthed(false); sessionStorage.removeItem("admin_secret"); return flash("error", "Wrong secret"); }
     const data = await res.json();
-    if (res.ok) { setEditing(null); flash("success", (editing?.word||"Word") + " saved!"); setTimeout(() => window.location.reload(), 1200); }
+    if (res.ok) { setEditing(null); flash("success", (editing?.word||"Word") + " saved!"); }
     else flash("error", data.error || "Failed");
   };
 
@@ -128,7 +163,7 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
     const res = await fetch("/api/admin/update-word", { method: "DELETE", headers: auth(), body: JSON.stringify({ id: w.id }) }).catch(() => null);
     setLoading(false);
     if (res?.status===401) { setAuthed(false); sessionStorage.removeItem("admin_secret"); flash("error", "Wrong secret"); return; }
-    if (res?.ok) { flash("success", w.word + " deleted"); setTimeout(() => window.location.reload(), 1200); }
+    if (res?.ok) { flash("success", w.word + " deleted"); setWords(prev => prev.filter(p => p.id !== w.id)); }
     else flash("error", "Delete failed");
   };
 
@@ -200,16 +235,14 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
   return (
     <div className="space-y-8">
 
-      {/* ═══ Toast ═══ */}
       {msg && (
-        <div className={"fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium border transition-all " +
+        <div className={"fixed bottom-20 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium border transition-all " +
           (msg.t === "success" ? "bg-green-600 text-white border-green-700" : "bg-red-600 text-white border-red-700")}>
           {msg.text}
           <button onClick={() => setMsg(null)} className="ml-3 opacity-70 hover:opacity-100">&times;</button>
         </div>
       )}
 
-      {/* ═══ Stats ═══ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           {label:"Total Words", value:String(words.length)},
@@ -224,9 +257,8 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
         ))}
       </div>
 
-      {/* ═══ Actions Grid ═══ */}
+      {/* Actions Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Data Actions */}
         <div className="border border-border rounded-xl p-4">
           <p className="text-[11px] font-mono text-muted-foreground/50 uppercase tracking-wider mb-3">Data</p>
           <div className="flex flex-wrap gap-2">
@@ -236,20 +268,22 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
               className="px-3 py-1.5 bg-accent text-accent-foreground rounded-lg text-xs font-semibold hover:bg-accent/90 disabled:opacity-50 transition">Oxford Fetch</button>
             <button onClick={() => act("/api/admin/enrich", "Enrich")} disabled={loading}
               className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-lg text-xs font-semibold hover:bg-secondary/80 disabled:opacity-50 transition">Enrich</button>
-            <button onClick={() => act("/api/admin/cleanup", "Cleanup")} disabled={loading}
+            <button onClick={() => {
+              if (prompt('Type "DELETE" to confirm:') === "DELETE") act("/api/admin/cleanup", "Cleanup");
+              else flash("error", "Cancelled - type DELETE to confirm");
+            }} disabled={loading}
               className="px-3 py-1.5 bg-destructive text-destructive-foreground rounded-lg text-xs font-semibold hover:bg-destructive/90 disabled:opacity-50 transition">Delete All</button>
             <button onClick={exportJSON} disabled={loading}
               className="px-3 py-1.5 bg-card text-foreground border border-border rounded-lg text-xs font-semibold hover:bg-muted disabled:opacity-50 transition">Export JSON</button>
           </div>
         </div>
-        {/* Announcement */}
         <div className="border border-border rounded-xl p-4">
           <p className="text-[11px] font-mono text-muted-foreground/50 uppercase tracking-wider mb-3">Announcement</p>
           <div className="space-y-2">
             <input type="text" placeholder="Title" value={annForm.title}
               onChange={e => setAnnForm({...annForm, title: e.target.value})}
               className="w-full px-3 py-1.5 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-accent/30" />
-            <RichEditor value={annForm.body} onChange={v => setAnnForm({...annForm, body: v})} />
+            <RichEditor key={annForm.body} value={annForm.body} onChange={v => setAnnForm({...annForm, body: v})} />
             <div className="flex gap-2 items-center">
               <label className="flex items-center gap-2 cursor-pointer text-sm">
                 <input type="checkbox" checked={annForm.enabled} onChange={e => setAnnForm({...annForm, enabled: e.target.checked})} className="accent-accent" />
@@ -264,7 +298,7 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
         </div>
       </div>
 
-      {/* ═══ Words + Search ═══ */}
+      {/* Words Table */}
       <div className="border border-border rounded-xl overflow-hidden">
         <div className="bg-muted/30 px-4 py-3 border-b border-border flex items-center gap-3 flex-wrap">
           <h2 className="font-bold text-sm">Words</h2>
@@ -315,7 +349,7 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
         </div>
       </div>
 
-      {/* ═══ Edit Modal ═══ */}
+      {/* Edit Modal */}
       {editing !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3" onClick={() => setEditing(null)}>
           <div className="bg-background border border-border rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto shadow-xl" onClick={e => e.stopPropagation()}>
@@ -348,7 +382,7 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
         </div>
       )}
 
-      {/* ═══ Activity Log ═══ */}
+      {/* Activity Log */}
       <div className="border border-border rounded-xl overflow-hidden">
         <button onClick={loadLogs}
           className="w-full bg-muted/20 px-4 py-3 border-b border-border flex items-center justify-between hover:bg-muted/40 transition">
@@ -377,7 +411,7 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
         )}
       </div>
 
-      {/* ═══ Announcement Preview Popup ═══ */}
+      {/* Announcement Preview */}
       {showAnnPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6" onClick={() => setShowAnnPreview(false)}>
           <div className="bg-background border border-border rounded-2xl w-full max-w-lg shadow-xl flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
