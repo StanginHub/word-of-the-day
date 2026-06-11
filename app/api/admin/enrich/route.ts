@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 const B = String.fromCharCode(66, 101, 97, 114, 101, 114) + " ";
-const check = (req: Request) => { const h = req.headers.get("Authorization")||""; if(!h.startsWith(B))return false; return h.slice(B.length).trim()===process.env.CRON_SECRET?.trim(); };
+const check = (req: Request): boolean => {
+  const h = req.headers.get("Authorization")||""; if(!h.startsWith(B))return false;
+  return h.slice(B.length).trim()===process.env.CRON_SECRET?.trim();
+};
 const unauth = () => NextResponse.json({error:"Unauthorized"},{status:401});
 
 export async function POST(request: Request) {
@@ -11,24 +14,26 @@ export async function POST(request: Request) {
   try {
     const { createClient } = await import("@supabase/supabase-js");
     const sb = createClient(su, sk);
-    const { data: words } = await sb.from("daily_words").select("word,fetched_date").is("ipa", null);
+    const { data: words } = await sb.from("daily_words").select("word,fetched_date").neq("ipa", null).order("fetched_date",{ascending:false});
     if (!words || words.length === 0) return NextResponse.json({success:true, enriched:0});
 
     const origin = new URL(request.url).origin;
     const secret = process.env.CRON_SECRET;
     let done = 0, fail = 0;
-
     for (const w of words) {
-      const res = await fetch(origin + "/api/cron/fetch-word", {
-        method: "POST",
-        headers: { "Authorization": B + secret, "Content-Type": "application/json" },
-        body: JSON.stringify({ word: w.word, date: w.fetched_date }),
-        signal: AbortSignal.timeout(30000),
-      });
-      const data = await res.json();
-      if (data.success) done++; else fail++;
+      try {
+        const res = await fetch(origin+"/api/cron/fetch-word",{
+          method:"POST",
+          headers:{"Authorization":B+secret,"Content-Type":"application/json"},
+          body:JSON.stringify({word:w.word,date:w.fetched_date}),
+          signal:AbortSignal.timeout(30000),
+        });
+        const data = await res.json();
+        if (data.success) done++; else fail++;
+      } catch { fail++; }
     }
-
     return NextResponse.json({success:true, enriched:done, failed:fail, total:words.length});
-  } catch(e: unknown) { return NextResponse.json({error:e instanceof Error?e.message:String(e)},{status:500}); }
+  } catch(e:unknown) {
+    return NextResponse.json({error:e instanceof Error?e.message:String(e)},{status:500});
+  }
 }
