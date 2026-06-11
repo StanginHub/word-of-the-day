@@ -32,7 +32,73 @@ function todayStr(): string {
 
 const OXFORD_URL = "https://www.oxfordlearnersdictionaries.com/";
 
-async function scrapeOxford(): Promise<DictEntry> {
+async function scrapeOxford(overrideWord?: string): Promise<DictEntry> {
+  // --- Override mode: fetch a specific word's detail page directly ---
+  if (overrideWord) {
+    const detailUrl = `https://www.oxfordlearnersdictionaries.com/definition/english/${encodeURIComponent(overrideWord)}`;
+    const detailRes = await fetch(detailUrl);
+    if (!detailRes.ok)
+      throw new Error(
+        `Oxford detail page returned ${detailRes.status} for word "${overrideWord}"`
+      );
+    const detailHtml = await detailRes.text();
+    const $$ = cheerio.load(detailHtml);
+
+    const word = cleanText($$("h1.headword").first().text()) || overrideWord;
+    const pos = cleanText($$("span.pos").first().text()) || "";
+    const ipa =
+      cleanText($$("div.phons_br span.phon").first().text()) ||
+      cleanText($$("div.phons_n_am span.phon").first().text()) ||
+      "";
+    const definition = cleanText($$("span.def").first().text()) || "";
+    const oxfordSynonyms: string[] = [];
+    $$("span.xrefs a.Ref").each((_, el) => {
+      const syn = cleanText($$(el).text());
+      if (syn) oxfordSynonyms.push(syn);
+    });
+    const examples: string[] = [];
+    $$("span.x").each((_, el) => {
+      const ex = cleanText($$(el).text());
+      if (ex) examples.push(ex);
+    });
+    let etymology = "";
+    const originDiv = $$("#wordorigin").first();
+    if (originDiv.length) {
+      etymology = cleanText(originDiv.text()).replace(/^Word Origin\s*/i, "") || "";
+    } else {
+      $$("span.box_title").each((_, el) => {
+        if (cleanText($$(el).text()).toLowerCase() === "word origin") {
+          const bodyEl = $$(el).next("span.body");
+          if (bodyEl.length) {
+            etymology = cleanText(bodyEl.find("span.p").text()) || "";
+          }
+        }
+      });
+    }
+    const cefr = cleanText($$("div.cefr").first().text()) || "";
+    const topicEl = $$("a.origin").first();
+    const topic = topicEl.length
+      ? cleanText(topicEl.find("div").first().text()) || cleanText(topicEl.text()) || ""
+      : "";
+
+    if (!word)
+      throw new Error(
+        `Could not find word on Oxford detail page for "${overrideWord}"`
+      );
+
+    return {
+      word,
+      pos: pos || undefined,
+      ipa: ipa || undefined,
+      definition: definition || undefined,
+      oxfordSynonyms: oxfordSynonyms.length > 0 ? oxfordSynonyms : undefined,
+      examples: examples.length > 0 ? examples : undefined,
+      etymology: etymology || undefined,
+      cefr: cefr || undefined,
+      topic: topic || undefined,
+    };
+  }
+
   // 1. Fetch homepage
   const res = await fetch(OXFORD_URL);
   if (!res.ok) throw new Error(`Oxford returned ${res.status}`);
@@ -441,10 +507,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // ---- parse optional override params ----
+  let overrideWord: string | null = null;
+  let overrideDate: string | null = null;
+  try {
+    const body = await request.clone().json();
+    if (typeof body.word === "string") overrideWord = body.word;
+    if (typeof body.date === "string") overrideDate = body.date;
+  } catch {
+    // body not JSON or missing — no overrides
+  }
+
   // ---- scrape / fetch entry ----
   let entry: DictEntry;
   try {
-    entry = await scrapeOxford();
+    entry = await scrapeOxford(overrideWord ?? undefined);
     // If the scraping returned a word but empty definition, try to enrich
     if (!entry.definition) {
       try {
@@ -508,7 +585,7 @@ export async function POST(request: Request) {
   // ---- upsert into Supabase ----
   try {
     const supabase = createServiceClient();
-    const date = todayStr();
+    const date = overrideDate ?? todayStr();
     const payload = {
       word: entry.word,
       pos: entry.pos || null,
