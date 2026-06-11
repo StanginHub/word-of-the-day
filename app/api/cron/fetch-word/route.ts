@@ -571,9 +571,10 @@ export async function POST(request: Request) {
       const sk = process.env.SUPABASE_SERVICE_ROLE_KEY;
       if (su && sk) {
         const sb = createClient(su, sk);
-        const existing = await sb.from("daily_words").select("thai_translations").eq("word", entry.word).single();
-        if (existing.data?.thai_translations?.length > 0) {
-          thai_translations = existing.data.thai_translations;
+        const existing = await sb.from("daily_words").select("thai_translations").eq("word", entry.word).maybeSingle();
+        const existingTranslations = (existing.data?.thai_translations || null) as string[] | null;
+        if (existingTranslations && existingTranslations.length > 0) {
+          thai_translations = existingTranslations;
         }
       }
     } catch { /* ignore */ }
