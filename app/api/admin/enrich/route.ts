@@ -41,9 +41,11 @@ export async function POST(request: Request) {
     let done = 0, fail = 0, filtered = 0;
 
     // Build a set of valid English words from thesaurus + definition
-    type WordRow = {synonyms_strongest?:string[]|null;synonyms_strong?:string[]|null;synonyms_weak?:string[]|null;synonyms?:string[]|null;definition?:string|null};
+    type WordRow = {synonyms_strongest?:string[]|null;synonyms_strong?:string[]|null;synonyms_weak?:string[]|null;synonyms?:string[]|null;definition?:string|null;word?:string|null};
     function getValidWords(row: WordRow): Set<string> {
       const s = new Set<string>();
+      // Add the word itself (e.g. "priority" → "priority" matches priority)
+      if (row.word) s.add(row.word.toLowerCase());
       // Add all thesaurus synonyms for this word's specific meaning
       for (const list of [row.synonyms_strongest, row.synonyms_strong, row.synonyms_weak, row.synonyms]) {
         if (Array.isArray(list)) list.forEach((w: string) => s.add(w.toLowerCase()));
@@ -78,7 +80,8 @@ export async function POST(request: Request) {
           .select("synonyms_strongest,synonyms_strong,synonyms_weak,synonyms,definition")
           .eq("fetched_date", w.fetched_date).single();
         const validWords = getValidWords({
-      synonyms_strongest: fresh?.synonyms_strongest || w.synonyms_strongest,
+          word: w.word,
+          synonyms_strongest: fresh?.synonyms_strongest || w.synonyms_strongest,
       synonyms_strong: fresh?.synonyms_strong || w.synonyms_strong,
       synonyms_weak: fresh?.synonyms_weak || w.synonyms_weak,
       synonyms: fresh?.synonyms || w.synonyms,
