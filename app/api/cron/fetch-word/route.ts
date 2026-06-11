@@ -464,23 +464,33 @@ async function fetchThaiTranslations(
         const data = await res.json();
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
         if (text.startsWith("NO")) {
-          // DeepL was wrong — try Google Translate
+          // DeepL was wrong — use Gemini's suggested translation instead
           translations.clear();
-          try {
-            const gRes = await fetch(
-              "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=th&dt=t&q=" + encodeURIComponent(word)
-            );
-            if (gRes.ok) {
-              const gData = await gRes.json();
-              if (Array.isArray(gData?.[0])) {
-                for (const item of gData[0]) {
-                  if (Array.isArray(item) && item[0] && typeof item[0] === "string") {
-                    translations.add(item[0].trim());
+          // Extract Thai text from Gemini's response (lines after NO)
+          const lines = text.split("\n").filter((l: string) => l.trim());
+          for (const line of lines) {
+            if (/[\u0E00-\u0E7F]/.test(line) && !line.startsWith("NO")) {
+              translations.add(line.replace(/^[-*\d. ]+/, "").trim());
+            }
+          }
+          // If Gemini didn't provide a translation, fall back to Google
+          if (translations.size === 0) {
+            try {
+              const gRes = await fetch(
+                "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=th&dt=t&q=" + encodeURIComponent(word)
+              );
+              if (gRes.ok) {
+                const gData = await gRes.json();
+                if (Array.isArray(gData?.[0])) {
+                  for (const item of gData[0]) {
+                    if (Array.isArray(item) && item[0] && typeof item[0] === "string") {
+                      translations.add(item[0].trim());
+                    }
                   }
                 }
               }
-            }
-          } catch { /* silent */ }
+            } catch { /* silent */ }
+          }
         }
       }
     } catch { /* Gemini unavailable — keep DeepL result */ }
