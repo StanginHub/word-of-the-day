@@ -134,6 +134,13 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
                   </Badge>
                 ))}
               </div>
+              <div className="flex justify-center mt-3">
+                <a href={"https://translate.google.com/?sl=en&tl=th&text=" + encodeURIComponent(word.word)} target="_blank" rel="noopener noreferrer"
+                   className="inline-flex items-center gap-1.5 text-xs font-medium text-accent border border-accent/20 rounded-lg px-3 py-1.5 bg-accent/5 hover:bg-accent/10 hover:border-accent/30 transition-all">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a10 10 0 1 0 10 10h-10V2z"/><path d="M2 12h10"/><path d="M12 2v10"/></svg>
+                  Open in Google Translate
+                </a>
+              </div>
             </div>
           )}
 

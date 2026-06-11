@@ -49,7 +49,14 @@ export default function RootLayout({
           </div>
         </header>
         <main className="flex-1">{children}</main>
-        <Analytics />
+
+        {/* Fixed bottom-right GIF */}
+        <img
+          src="/stang-bell.gif"
+          alt=""
+          className="fixed bottom-4 right-4 z-40 w-20 h-20 sm:w-24 sm:h-24 pointer-events-none select-none"
+          style={{ imageRendering: "auto" }}
+        />
       </body>
     </html>
   );
