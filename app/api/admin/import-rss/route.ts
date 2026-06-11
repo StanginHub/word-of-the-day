@@ -6,7 +6,15 @@ export async function POST(request: Request) {
   try {
     // Fetch RSS feed
     const feedUrl = "https://feeds.feedburner.com/OLD-WordOfTheDay";
-    const res = await fetch(feedUrl);
+    
+    console.log("Fetching RSS from:", feedUrl);
+    
+    const res = await fetch(feedUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+    });
+
     if (!res.ok) {
       return NextResponse.json(
         { error: `Failed to fetch RSS feed: ${res.status}` },
@@ -16,7 +24,8 @@ export async function POST(request: Request) {
 
     const xml = await res.text();
     console.log("RSS Feed fetched, length:", xml.length);
-    
+    console.log("First 500 chars:", xml.substring(0, 500));
+
     const $ = cheerio.load(xml, { xmlMode: true });
 
     const supabase = createServiceClient();
@@ -26,62 +35,94 @@ export async function POST(request: Request) {
       fetched_date: string;
     }> = [];
 
-    // Parse RSS items - try both item and entry tags
-    const entries = $("item, entry");
-    console.log("Found entries:", entries.length);
+    // Parse RSS items
+    const entries = $("item");
+    console.log("Found item elements:", entries.length);
 
-    entries.each((_, el) => {
-      const $item = $(el);
-      
-      // Try both title and summary/description
-      let title = $item.find("title").first().text().trim();
-      let description = $item.find("description").first().text().trim() || 
-                       $item.find("summary").first().text().trim() || "";
+    entries.each((idx, el) => {
+      try {
+        const $item = $(el);
 
-      // Try pubDate or published
-      let pubDateStr = $item.find("pubDate").first().text().trim() ||
-                       $item.find("published").first().text().trim() || "";
+        // Get title (the word)
+        const title = $item.find("title").first().text().trim();
 
-      console.log("Entry:", { title, description: description.substring(0, 30), pubDateStr });
+        // Get description
+        let description = $item.find("description").first().text().trim();
 
-      if (title) {
-        try {
-          // Parse date - handle various formats
-          const pubDate = new Date(pubDateStr);
-          const dateStr = pubDate.toISOString().split("T")[0];
+        // Get pubDate
+        let pubDateStr = $item.find("pubDate").first().text().trim();
 
-          // Clean HTML from description if present
-          const cleanDesc = description
-            .replace(/<[^>]*>/g, "") // Remove HTML tags
-            .replace(/&amp;/g, "&")
-            .replace(/&lt;/g, "<")
-            .replace(/&gt;/g, ">")
-            .replace(/&quot;/g, '"')
-            .trim()
-            .substring(0, 500); // Limit length
+        console.log(`Item ${idx}:`, {
+          title: title.substring(0, 20),
+          description: description.substring(0, 50),
+          pubDate: pubDateStr,
+        });
 
-          items.push({
-            word: title,
-            definition: cleanDesc || null,
-            fetched_date: dateStr,
-          });
-        } catch (e) {
-          console.warn("Failed to parse entry:", e);
+        if (!title) {
+          console.warn(`Item ${idx}: No title found`);
+          return;
         }
+
+        // Parse the date
+        let dateStr = "";
+        try {
+          if (pubDateStr) {
+            const pubDate = new Date(pubDateStr);
+            if (!isNaN(pubDate.getTime())) {
+              dateStr = pubDate.toISOString().split("T")[0];
+            } else {
+              // Fallback: use today's date
+              dateStr = new Date().toISOString().split("T")[0];
+            }
+          } else {
+            dateStr = new Date().toISOString().split("T")[0];
+          }
+        } catch (e) {
+          console.warn(`Item ${idx}: Could not parse date`, e);
+          dateStr = new Date().toISOString().split("T")[0];
+        }
+
+        // Clean description: remove HTML, decode entities
+        const cleanDesc = description
+          .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1") // Remove CDATA wrapper
+          .replace(/<[^>]*>/g, "") // Remove HTML tags
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .replace(/&apos;/g, "'")
+          .trim()
+          .substring(0, 1000); // Limit length
+
+        items.push({
+          word: title,
+          definition: cleanDesc || null,
+          fetched_date: dateStr,
+        });
+
+        console.log(`Item ${idx}: Successfully parsed`);
+      } catch (e) {
+        console.warn(`Error parsing item ${idx}:`, e);
       }
     });
 
-    console.log("Items to insert:", items.length);
+    console.log("Total items parsed:", items.length);
 
     if (items.length === 0) {
       return NextResponse.json(
-        { error: "No items found in RSS feed or could not parse items" },
+        {
+          error: "No items found in RSS feed or could not parse items",
+          debug: {
+            feedLength: xml.length,
+            itemCount: entries.length,
+          },
+        },
         { status: 400 }
       );
     }
 
     // Upsert into database
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from("daily_words")
       .upsert(items, { onConflict: "fetched_date" });
 
