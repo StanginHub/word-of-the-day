@@ -442,58 +442,63 @@ async function fetchThaiTranslations(
     } catch { /* fall through */ }
   }
 
-  // Gemini validation: check if DeepL's translation matches the definition
+  // Gemini validation: try models in priority order
   const geminiKey = process.env.GEMINI_API_KEY;
+  const geminiModels = ["gemini-3.5-flash", "gemini-2.5-flash"];
   if (geminiKey && _definition && translations.size > 0) {
     const first = [...translations][0];
-    try {
-      const prompt = "Word: " + word + "\\nDefinition: " + _definition + "\\nThai: " + first + "\\n\\nDoes the Thai match the definition? Reply YES or NO. If NO, what is the correct Thai translation?";
-      const res = await fetch(
-        "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" + geminiKey,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 50, temperature: 0 },
-          }),
-          signal: AbortSignal.timeout(15000),
-        }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        if (text.startsWith("NO")) {
-          // DeepL was wrong — use Gemini's suggested translation instead
-          translations.clear();
-          // Extract Thai text from Gemini's response (lines after NO)
-          const lines = text.split("\n").filter((l: string) => l.trim());
-          for (const line of lines) {
-            if (/[\u0E00-\u0E7F]/.test(line) && !line.startsWith("NO")) {
-              translations.add(line.replace(/^[-*\d. ]+/, "").trim());
-            }
+    let geminiDone = false;
+    for (const model of geminiModels) {
+      if (geminiDone) break;
+      try {
+        const prompt = "Word: " + word + "\\nDefinition: " + _definition + "\\nThai: " + first + "\\n\\nDoes the Thai match the definition? Reply YES or NO. If NO, what is the correct Thai translation?";
+        const res = await fetch(
+          "https://generativelanguage.googleapis.com/v1/models/" + model + ":generateContent?key=" + geminiKey,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { maxOutputTokens: 50, temperature: 0 },
+            }),
+            signal: AbortSignal.timeout(15000),
           }
-          // If Gemini didn't provide a translation, fall back to Google
-          if (translations.size === 0) {
-            try {
-              const gRes = await fetch(
-                "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=th&dt=t&q=" + encodeURIComponent(word)
-              );
-              if (gRes.ok) {
-                const gData = await gRes.json();
-                if (Array.isArray(gData?.[0])) {
-                  for (const item of gData[0]) {
-                    if (Array.isArray(item) && item[0] && typeof item[0] === "string") {
-                      translations.add(item[0].trim());
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          geminiDone = true;
+          if (text.startsWith("NO")) {
+            translations.clear();
+            const lines = text.split("\n").filter((l: string) => l.trim());
+            for (const line of lines) {
+              if (/[\u0E00-\u0E7F]/.test(line) && !line.startsWith("NO")) {
+                translations.add(line.replace(/^[-*\d. ]+/, "").trim());
+              }
+            }
+            if (translations.size === 0) {
+              try {
+                const gRes = await fetch(
+                  "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=th&dt=t&q=" + encodeURIComponent(word)
+                );
+                if (gRes.ok) {
+                  const gData = await gRes.json();
+                  if (Array.isArray(gData?.[0])) {
+                    for (const item of gData[0]) {
+                      if (Array.isArray(item) && item[0] && typeof item[0] === "string") {
+                        translations.add(item[0].trim());
+                      }
                     }
                   }
                 }
-              }
-            } catch { /* silent */ }
+              } catch { /* silent */ }
+            }
           }
+        } else if (res.status === 429 || res.status === 503) {
+          continue;
         }
-      }
-    } catch { /* Gemini unavailable — keep DeepL result */ }
+      } catch { /* try next model */ }
+    }
   }
 
   // Fallback: Google Translate free endpoint
