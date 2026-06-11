@@ -442,6 +442,50 @@ async function fetchThaiTranslations(
     } catch { /* fall through */ }
   }
 
+  // Gemini validation: check if DeepL's translation matches the definition
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey && _definition && translations.size > 0) {
+    const first = [...translations][0];
+    try {
+      const prompt = "Word: " + word + "\\nDefinition: " + _definition + "\\nThai: " + first + "\\n\\nDoes the Thai match the definition? Reply YES or NO. If NO, what is the correct Thai translation?";
+      const res = await fetch(
+        "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" + geminiKey,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 50, temperature: 0 },
+          }),
+          signal: AbortSignal.timeout(8000),
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        if (text.startsWith("NO")) {
+          // DeepL was wrong — try Google Translate
+          translations.clear();
+          try {
+            const gRes = await fetch(
+              "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=th&dt=t&q=" + encodeURIComponent(word)
+            );
+            if (gRes.ok) {
+              const gData = await gRes.json();
+              if (Array.isArray(gData?.[0])) {
+                for (const item of gData[0]) {
+                  if (Array.isArray(item) && item[0] && typeof item[0] === "string") {
+                    translations.add(item[0].trim());
+                  }
+                }
+              }
+            }
+          } catch { /* silent */ }
+        }
+      }
+    } catch { /* Gemini unavailable — keep DeepL result */ }
+  }
+
   // Fallback: Google Translate free endpoint
   if (translations.size === 0) {
     try {
