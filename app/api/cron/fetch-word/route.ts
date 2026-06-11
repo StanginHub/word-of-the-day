@@ -421,14 +421,18 @@ async function fetchThaiTranslations(
 ): Promise<string[]> {
   const translations = new Set<string>();
 
-  // Collect words to translate: the main word + top synonyms (for nuance)
-  const wordsToTranslate = [word];
+  // Collect words to translate: skip the bare word (it often gives wrong
+  // meanings for polysemous words). Use synonyms only, which narrow the
+  // specific meaning from Thesaurus.com.
+  const wordsToTranslate: string[] = [];
   if (synonyms && synonyms.length > 0) {
     const topSynonyms = synonyms
       .filter((s) => !s.includes(" "))
-      .slice(0, 5);
+      .slice(0, 6);
     wordsToTranslate.push(...topSynonyms);
   }
+  // Fallback: if no synonyms, translate the bare word as a last resort
+  if (wordsToTranslate.length === 0) wordsToTranslate.push(word);
 
   // Strategy 1: Cloud API if key exists (best quality)
   const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
