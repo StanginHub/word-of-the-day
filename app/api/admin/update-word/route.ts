@@ -6,6 +6,8 @@ function check(req: Request): boolean {
 }
 const unauth = () => NextResponse.json({error:"Unauthorized"},{status:401});
 
+const allowed = ["word","thai_translations","cefr","topic","definition","pos","ipa","fetched_date","examples","etymology","synonyms","synonyms_strongest","synonyms_strong","synonyms_weak","antonyms","antonyms_strongest","antonyms_strong","antonyms_weak"];
+
 export async function POST(request: Request) {
   if (!check(request)) return unauth();
   const su = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -16,17 +18,37 @@ export async function POST(request: Request) {
     const sb = createClient(su, sk);
     const body = await request.json();
     const { id, ...updates } = body;
-    if (!id) return NextResponse.json({error:"Missing id"},{status:400});
-
-    // Only allow specific fields
-    const allowed = ["thai_translations","cefr","topic","definition","pos","ipa","fetched_date","examples","etymology","synonyms","synonyms_strongest","synonyms_strong","synonyms_weak","antonyms","antonyms_strongest","antonyms_strong","antonyms_weak"];
-    const clean: Record<string, unknown> = {};
-    for (const key of Object.keys(updates)) {
-      if (allowed.includes(key)) clean[key] = updates[key];
+    if (!id) {
+      // Insert new
+      const clean: Record<string, unknown> = {};
+      for (const k of Object.keys(updates)) if (allowed.includes(k)) clean[k] = updates[k];
+      if (!clean.fetched_date) clean.fetched_date = new Date().toISOString().slice(0,10);
+      const { error } = await sb.from("daily_words").insert(clean);
+      if (error) return NextResponse.json({error:error.message},{status:500});
+      return NextResponse.json({success:true, created:true});
     }
+    const clean: Record<string, unknown> = {};
+    for (const k of Object.keys(updates)) if (allowed.includes(k)) clean[k] = updates[k];
     if (Object.keys(clean).length === 0) return NextResponse.json({error:"No valid fields"},{status:400});
-
     const { error } = await sb.from("daily_words").update(clean).eq("id", id);
+    if (error) return NextResponse.json({error:error.message},{status:500});
+    return NextResponse.json({success:true});
+  } catch(e:unknown) {
+    return NextResponse.json({error:e instanceof Error?e.message:String(e)},{status:500});
+  }
+}
+
+export async function DELETE(request: Request) {
+  if (!check(request)) return unauth();
+  const su = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const sk = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!su || !sk) return NextResponse.json({error:"DB not configured"},{status:500});
+  try {
+    const { createClient } = await import("@supabase/supabase-js");
+    const sb = createClient(su, sk);
+    const body = await request.json();
+    if (!body.id) return NextResponse.json({error:"Missing id"},{status:400});
+    const { error } = await sb.from("daily_words").delete().eq("id", body.id);
     if (error) return NextResponse.json({error:error.message},{status:500});
     return NextResponse.json({success:true});
   } catch(e:unknown) {
