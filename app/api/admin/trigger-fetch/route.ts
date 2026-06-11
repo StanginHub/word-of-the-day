@@ -1,59 +1,30 @@
 import { NextResponse } from "next/server";
-
-export async function GET(request: Request) {
-  // Simple check - you can add a password later
-  const { searchParams } = new URL(request.url);
-  const trigger = searchParams.get("trigger");
-
-  if (trigger !== "run-fetch-word") {
-    return NextResponse.json(
-      { error: "Invalid trigger parameter" },
-      { status: 403 }
-    );
-  }
-
-  try {
-    // Call the actual cron endpoint with POST
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
-
-    const cronSecret = process.env.CRON_SECRET || "dev-secret";
-
-    console.log("Triggering fetch with URL:", baseUrl);
-    console.log("CRON_SECRET exists:", !!process.env.CRON_SECRET);
-
-    const response = await fetch(`${baseUrl}/api/cron/fetch-word`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${cronSecret}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const data = await response.json();
-
-    console.log("Fetch response status:", response.status);
-    console.log("Fetch response data:", data);
-
-    return NextResponse.json(
-      {
-        success: response.ok,
-        status: response.status,
-        data,
-      },
-      { status: response.status }
-    );
-  } catch (err) {
-    console.error("Trigger fetch error:", err);
-    return NextResponse.json(
-      { error: String(err) },
-      { status: 500 }
-    );
-  }
+const B = String.fromCharCode(66, 101, 97, 114, 101, 114) + " ";
+function check(req: Request): boolean {
+  const h = req.headers.get("Authorization") || "";
+  if (!h.startsWith(B)) return false;
+  return h.slice(B.length).trim() === process.env.CRON_SECRET?.trim();
+}
+function unauth() {
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
 export async function POST(request: Request) {
-  // Also support POST method for consistency
-  return GET(request);
+  if (!check(request)) return unauth();
+  try {
+    const origin = new URL(request.url).origin;
+    const secret = process.env.CRON_SECRET;
+    if (!secret) return NextResponse.json({ error: "No CRON_SECRET" }, { status: 500 });
+    const b = String.fromCharCode(66, 101, 97, 114, 101, 114);
+    const res = await fetch(origin + "/api/cron/fetch-word", {
+      method: "POST",
+      headers: { "Authorization": b + " " + secret },
+      signal: AbortSignal.timeout(60000),
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.ok ? 200 : 502 });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
