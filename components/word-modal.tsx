@@ -37,6 +37,8 @@ interface WordModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+
+const oxfordUrl = (s: string) => "https://www.oxfordlearnersdictionaries.com/definition/english/" + encodeURIComponent(s.toLowerCase().trim());
 export default function WordModal({ word, open, onOpenChange }: WordModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -154,9 +156,9 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
                           key={s}
                           variant="outline"
                           className="text-sm px-3 py-1 border-emerald-500 text-emerald-700 bg-emerald-50"
-                        >
+                        ><a href={oxfordUrl(s)} target="_blank" rel="noopener noreferrer" className="hover:underline">
                           {s}
-                        </Badge>
+                        </a></Badge>
                       ))}
                     </div>
                   </div>
@@ -171,9 +173,9 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
                           key={s}
                           variant="outline"
                           className="text-sm px-3 py-1 border-blue-500 text-blue-700 bg-blue-50"
-                        >
+                        ><a href={oxfordUrl(s)} target="_blank" rel="noopener noreferrer" className="hover:underline">
                           {s}
-                        </Badge>
+                        </a></Badge>
                       ))}
                     </div>
                   </div>
@@ -188,9 +190,9 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
                           key={s}
                           variant="outline"
                           className="text-sm px-3 py-1 border-muted-foreground/20 text-muted-foreground/70 bg-muted/50"
-                        >
+                        ><a href={oxfordUrl(s)} target="_blank" rel="noopener noreferrer" className="hover:underline">
                           {s}
-                        </Badge>
+                        </a></Badge>
                       ))}
                     </div>
                   </div>
@@ -215,7 +217,7 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
                     <p className="text-xs font-semibold text-emerald-600 mb-1.5">STRONGEST</p>
                     <div className="flex flex-wrap gap-2 justify-center">
                       {word.antonyms_strongest.map((a: string) => (
-                        <Badge key={a} variant="outline" className="text-sm px-3 py-1 border-emerald-500 text-emerald-700 bg-emerald-50">{a}</Badge>
+                        <Badge key={a} variant="outline" className="text-sm px-3 py-1 border-emerald-500 text-emerald-700 bg-emerald-50"><a href={oxfordUrl(a)} target="_blank" rel="noopener noreferrer" className="hover:underline">{a}</a></Badge>
                       ))}
                     </div>
                   </div>
@@ -225,7 +227,7 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
                     <p className="text-xs font-semibold text-blue-600 mb-1.5">STRONG</p>
                     <div className="flex flex-wrap gap-2 justify-center">
                       {word.antonyms_strong.map((a: string) => (
-                        <Badge key={a} variant="outline" className="text-sm px-3 py-1 border-blue-500 text-blue-700 bg-blue-50">{a}</Badge>
+                        <Badge key={a} variant="outline" className="text-sm px-3 py-1 border-blue-500 text-blue-700 bg-blue-50"><a href={oxfordUrl(a)} target="_blank" rel="noopener noreferrer" className="hover:underline">{a}</a></Badge>
                       ))}
                     </div>
                   </div>
@@ -235,7 +237,7 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
                     <p className="text-xs font-semibold text-muted-foreground/60 mb-1.5">WEAK</p>
                     <div className="flex flex-wrap gap-2 justify-center">
                       {word.antonyms_weak.map((a: string) => (
-                        <Badge key={a} variant="outline" className="text-sm px-3 py-1 border-muted-foreground/20 text-muted-foreground/70 bg-muted/50">{a}</Badge>
+                        <Badge key={a} variant="outline" className="text-sm px-3 py-1 border-muted-foreground/20 text-muted-foreground/70 bg-muted/50"><a href={oxfordUrl(a)} target="_blank" rel="noopener noreferrer" className="hover:underline">{a}</a></Badge>
                       ))}
                     </div>
                   </div>

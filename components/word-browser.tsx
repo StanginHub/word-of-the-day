@@ -25,14 +25,17 @@ async function copyToClipboard(text: string) {
 function BadgesOf({ words, color }: { words: string[] | null; color: "emerald" | "blue" | "muted" }) {
   if (!words || words.length === 0) return null;
   const map = {
-    emerald: "border-emerald-500 text-emerald-700 bg-emerald-50",
-    blue:    "border-blue-500   text-blue-700   bg-blue-50",
-    muted:   "border-muted-foreground/20 text-muted-foreground/70 bg-muted/50",
+    emerald: "border-emerald-500 text-emerald-700 bg-emerald-50 hover:bg-emerald-100",
+    blue:    "border-blue-500   text-blue-700   bg-blue-50   hover:bg-blue-100",
+    muted:   "border-muted-foreground/20 text-muted-foreground/70 bg-muted/50 hover:bg-muted/80",
   };
+  const base = (s: string) => "https://www.oxfordlearnersdictionaries.com/definition/english/" + encodeURIComponent(s.toLowerCase());
   return (
     <div className="flex flex-wrap justify-center gap-2">
       {words.map((s, i) => (
-        <Badge key={s + i} variant="outline" className={cn("text-sm px-3 py-1", map[color])}>{s}</Badge>
+        <a key={s + i} href={base(s)} target="_blank" rel="noopener noreferrer">
+          <Badge variant="outline" className={cn("text-sm px-3 py-1 cursor-pointer transition-colors", map[color])}>{s}</Badge>
+        </a>
       ))}
     </div>
   );
@@ -157,7 +160,9 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
               className="font-bold tracking-tight text-primary"
               style={{fontSize: "clamp(2.5rem, 5vw, 3.75rem)", lineHeight: 1.1, letterSpacing: "-0.03em", textWrap: "balance"}}
             >
-              {w.word}
+              <a href={"https://www.oxfordlearnersdictionaries.com/definition/english/" + encodeURIComponent(w.word.toLowerCase())} target="_blank" rel="noopener noreferrer" className="hover:underline decoration-accent/30 underline-offset-4 transition-all duration-200 hover:text-accent">
+                {w.word}
+              </a>
             </h1>
             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-[3px] rounded-full bg-accent/40" />
 
@@ -228,6 +233,13 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
                 {w.thai_translations.map((t) => (
                   <Badge key={t} variant="default" className="text-sm px-3.5 py-1.5 font-medium bg-accent/10 text-accent border-accent/20 hover:bg-accent/15">{t}</Badge>
                 ))}
+              </div>
+              <div className="flex justify-center mt-3 gap-2">
+                <a href={"https://translate.google.com/?sl=en&tl=th&text=" + encodeURIComponent(w.word)} target="_blank" rel="noopener noreferrer"
+                   className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/50 hover:text-accent transition-colors">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a10 10 0 1 0 10 10h-10V2z"/><path d="M2 12h10"/><path d="M12 2v10"/></svg>
+                  Open in Google Translate
+                </a>
               </div>
             </div>
           )}

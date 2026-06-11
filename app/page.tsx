@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { WordBrowser } from "@/components/word-browser";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 
 export interface DailyWord {
   id: string;
@@ -51,6 +52,7 @@ export default async function HomePage() {
         </div>
       }
     >
+      <AnnouncementBanner />
       <WordBrowser words={words as DailyWord[]} />
     </Suspense>
   );

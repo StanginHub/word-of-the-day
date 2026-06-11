@@ -167,6 +167,48 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
       )}
 
       {/* Words Table */}
+      
+      {/* Announcement Editor */}
+      <div className="border border-border rounded-2xl overflow-hidden">
+        <div className="bg-muted/50 px-5 py-3 border-b border-border flex items-center justify-between">
+          <h2 className="font-bold text-sm">Announcement</h2>
+        </div>
+        <div className="p-5 space-y-3">
+          <div>
+            <label className="text-[11px] font-mono text-muted-foreground/70 uppercase tracking-wider">Title</label>
+            <input type="text" id="ann-title" placeholder="e.g. Welcome!"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-background mt-0.5 focus:outline-none focus:ring-2 focus:ring-accent/30" />
+          </div>
+          <div>
+            <label className="text-[11px] font-mono text-muted-foreground/70 uppercase tracking-wider">Body</label>
+            <textarea id="ann-body" rows={3} placeholder="Announcement text..."
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-background mt-0.5 focus:outline-none focus:ring-2 focus:ring-accent/30 resize-none" />
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="ann-enabled" className="accent-accent" />
+              <span className="text-sm">Enabled</span>
+            </label>
+            <button onClick={async () => {
+              const title = (document.getElementById("ann-title") as HTMLInputElement).value;
+              const body = (document.getElementById("ann-body") as HTMLTextAreaElement).value;
+              const enabled = (document.getElementById("ann-enabled") as HTMLInputElement).checked;
+              const res = await fetch("/api/admin/announcement", {
+                method: "POST", headers: auth(),
+                body: JSON.stringify({ title, body: body, enabled }),
+              });
+              const d = await res.json();
+              if (d.success) setMsg({t:"success", text:"Announcement saved!"});
+              else setMsg({t:"error", text:"Failed"});
+            }} disabled={loading}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 transition">
+              Save Announcement
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Words Table */}
       <div className="border border-border rounded-2xl overflow-hidden">
         <div className="bg-muted/50 px-5 py-3 border-b border-border flex items-center justify-between">
           <h2 className="font-bold text-sm">Words</h2>
