@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 
 type Word = {id:string;word:string;fetched_date:string;definition:string|null;pos:string|null;ipa:string|null;cefr:string|null;topic:string|null;thai_translations:string[]|null;synonyms:string[]|null};
 
@@ -7,60 +7,51 @@ type Word = {id:string;word:string;fetched_date:string;definition:string|null;po
 const exec = (cmd:string, val?:string) => document.execCommand(cmd, false, val);
 
 function RichEditor({ value, onChange }: { value:string; onChange:(v:string)=>void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inited = useRef(false);
+  const ref = useRef<HTMLTextAreaElement>(null);
 
-  // Set initial HTML once on mount
-  useEffect(() => {
-    if (ref.current && !inited.current) {
-      ref.current.innerHTML = value;
-      inited.current = true;
-    }
-  }, []); // only once
-
-  const updateHtml = () => {
-    if (ref.current) onChange(ref.current.innerHTML);
+  const wrap = (before:string, after:string) => {
+    const ta = ref.current;
+    if (!ta) return;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const text = ta.value;
+    const selected = text.substring(start, end);
+    const replaced = before + selected + after;
+    ta.value = text.substring(0, start) + replaced + text.substring(end);
+    ta.selectionStart = start + before.length;
+    ta.selectionEnd = start + before.length + selected.length;
+    ta.focus();
+    onChange(ta.value);
   };
+
+  const tags = [
+    ["B", "<b>", "</b>"], ["I", "<i>", "</i>"], ["U", "<u>", "</u>"],
+    ["|"],
+    ["H2", "<h2>", "</h2>"], ["H3", "<h3>", "</h3>"],
+    ["|"],
+    ["•", "<ul><li>", "</li></ul>"],
+    ["1.", "<ol><li>", "</li></ol>"],
+    ["|"],
+    ["Clear", "", ""],
+  ];
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
-      {/* Toolbar */}
       <div className="flex flex-wrap gap-0.5 p-1.5 bg-muted/30 border-b border-border">
-        {[
-          [() => exec("bold"), "B", "font-bold"],
-          [() => exec("italic"), "I", "italic"],
-          [() => exec("underline"), "U", "underline"],
-          ["|"],
-          [() => exec("formatBlock", "<h2>"), "H2", ""],
-          [() => exec("formatBlock", "<h3>"), "H3", ""],
-          [() => exec("formatBlock", "<p>"), "P", ""],
-          ["|"],
-          [() => exec("insertUnorderedList"), "•", ""],
-          [() => exec("insertOrderedList"), "1.", ""],
-          ["|"],
-          [() => {
-            const s = prompt("Font size (px):", "18");
-            if (s) exec("fontSize", "7"); // just flag, we'll use style
-            // exec fontSize and then set style
-          }, "Aa", ""],
-          [() => exec("removeFormat"), "Clear", "text-muted-foreground/60"],
-        ].map((btn, i) => {
-          if (btn[0] === "|") return <span key={i} className="w-px h-5 bg-border mx-0.5 self-center" />;
-          const [action, label, cls] = btn;
-          return <button key={i} onMouseDown={e => { e.preventDefault(); (action as Function)(); updateHtml(); }}
-            className={"px-2 py-0.5 rounded text-xs hover:bg-muted transition " + cls}>{label as string}</button>;
+        {tags.map((item, i) => {
+          if (item[0] === "|") return <span key={i} className="w-px h-5 bg-border mx-0.5 self-center" />;
+          const [label, before, after] = item;
+          return <button key={i} onMouseDown={e => { e.preventDefault(); wrap(before, after); }}
+            className={"px-2 py-0.5 rounded text-xs hover:bg-muted transition " + (label === "Clear" ? "text-muted-foreground/60 ml-auto" : "")}>{label}</button>;
         })}
       </div>
-      {/* Editor */}
-      <div ref={ref} contentEditable
-        className="px-3 py-2 text-sm bg-background min-h-[100px] focus:outline-none"
-        onInput={updateHtml}
-        onBlur={updateHtml}
-        dangerouslySetInnerHTML={{__html: value}}
+      <textarea ref={ref} value={value} onChange={e => onChange(e.target.value)}
+        className="w-full px-3 py-2 text-sm bg-background min-h-[100px] resize-y focus:outline-none"
+        placeholder="Type announcement here..."
       />
     </div>
   );
 }
+
 
 export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
   const [loading, setLoading] = useState(false);
