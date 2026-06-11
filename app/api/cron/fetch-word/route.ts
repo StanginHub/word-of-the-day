@@ -525,16 +525,24 @@ async function fetchThaiTranslations(
         const text = data?.choices?.[0]?.message?.content?.trim() || "";
         if (text.startsWith("NO")) {
           translations.clear();
-          // Try Google as fallback
-          const gRes = await fetch(
-            "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=th&dt=t&q=" + encodeURIComponent(word)
-          );
-          if (gRes.ok) {
-            const gData = await gRes.json();
-            if (Array.isArray(gData?.[0])) {
-              for (const item of gData[0]) {
-                if (Array.isArray(item) && item[0] && typeof item[0] === "string") {
-                  translations.add(item[0].trim());
+          // Try to extract DeepSeek's suggested translation
+          for (const line of text.split("\n").filter((l: string) => l.trim())) {
+            if (/[\u0E00-\u0E7F]/.test(line) && !line.startsWith("NO")) {
+              translations.add(line.replace(/^[-*\d. ]+/, "").trim());
+            }
+          }
+          // If no suggestion, try Google as fallback
+          if (translations.size === 0) {
+            const gRes = await fetch(
+              "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=th&dt=t&q=" + encodeURIComponent(word)
+            );
+            if (gRes.ok) {
+              const gData = await gRes.json();
+              if (Array.isArray(gData?.[0])) {
+                for (const item of gData[0]) {
+                  if (Array.isArray(item) && item[0] && typeof item[0] === "string") {
+                    translations.add(item[0].trim());
+                  }
                 }
               }
             }
