@@ -445,7 +445,7 @@ async function fetchThaiTranslations(
   // Gemini validation: try models in priority order
   const geminiKey = process.env.GEMINI_API_KEY;
   const geminiModels = ["gemini-3.5-flash", "gemini-2.5-flash"];
-  const dsKey = process.env.DEEPSEEK_API_KEY;
+  const dsKey = process.env.OPCODE_KEY;
   const dsUrl = "https://opencode.ai/zen/go/v1/chat/completions";
   let aiDone = false;
 
