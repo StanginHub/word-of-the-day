@@ -447,12 +447,63 @@ async function fetchThaiTranslations(
   const geminiModels = ["gemini-3.5-flash", "gemini-2.5-flash"];
   const dsKey = process.env.DEEPSEEK_API_KEY;
   const dsUrl = "https://opencode.ai/zen/go/v1/chat/completions";
-  let geminiDone = false;
-  if (geminiKey && _definition && translations.size > 0) {
+  let aiDone = false;
+
+  // Try DeepSeek first (most reliable, no rate limits)
+  if (dsKey && _definition && translations.size > 0) {
     const first = [...translations][0];
-    geminiDone = false;
+    try {
+      const prompt = "Word: " + word + "\\nDefinition: " + _definition + "\\nThai: " + first + "\\n\\nDoes the Thai match the definition? Reply YES or NO. If NO, give the correct Thai translation.";
+      const res = await fetch(dsUrl, {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + dsKey, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "deepseek-v4-flash",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 512,
+          temperature: 0,
+        }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const text = data?.choices?.[0]?.message?.content?.trim() || "";
+        aiDone = true;
+        if (text.startsWith("NO")) {
+          translations.clear();
+          // Extract Thai text from DeepSeek's response
+          for (const line of text.split("\n").filter((l: string) => l.trim())) {
+            const clean = line.replace(/^[-*\d. ]+/, "").trim();
+            if (/^[\u0E00-\u0E7F]/.test(clean)) {
+              translations.add(clean);
+            }
+          }
+          // Fallback to Google if no Thai suggestion
+          if (translations.size === 0) {
+            const gRes = await fetch(
+              "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=th&dt=t&q=" + encodeURIComponent(word)
+            );
+            if (gRes.ok) {
+              const gData = await gRes.json();
+              if (Array.isArray(gData?.[0])) {
+                for (const item of gData[0]) {
+                  if (Array.isArray(item) && item[0] && typeof item[0] === "string") {
+                    translations.add(item[0].trim());
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch { /* try Gemini */ }
+  }
+
+  // Gemini fallback (if DeepSeek unavailable)
+  if (geminiKey && _definition && !aiDone && translations.size > 0) {
+    const first = [...translations][0];
     for (const model of geminiModels) {
-      if (geminiDone) break;
+      if (aiDone) break;
       try {
         const prompt = "Word: " + word + "\\nDefinition: " + _definition + "\\nThai: " + first + "\\n\\nDoes the Thai match the definition? Reply YES or NO. If NO, what is the correct Thai translation?";
         const res = await fetch(
@@ -470,7 +521,7 @@ async function fetchThaiTranslations(
         if (res.ok) {
           const data = await res.json();
           const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          geminiDone = true;
+          aiDone = true;
           if (text.startsWith("NO")) {
             translations.clear();
             const lines = text.split("\n").filter((l: string) => l.trim());
@@ -505,7 +556,7 @@ async function fetchThaiTranslations(
   }
 
   // DeepSeek fallback: if Gemini all failed and DeepL result looks wrong
-  if (dsKey && _definition && !geminiDone && translations.size > 0) {
+  if (dsKey && _definition && !aiDone && translations.size > 0) {
     const first = [...translations][0];
     try {
       const prompt = "Word: " + word + "\\nDefinition: " + _definition + "\\nThai: " + first + "\\n\\nDoes the Thai match the definition? Reply YES or NO. If NO, give the correct Thai translation.";
