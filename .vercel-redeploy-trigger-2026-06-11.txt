@@ -1,0 +1,5 @@
+Redeploy trigger file created by GitHub Copilot on user request.
+
+This file was added to force a new deployment so Vercel will (re)register vercel.json and scheduled crons.
+
+Trigger time (UTC): 2026-06-11T00:00:00Z
