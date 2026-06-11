@@ -445,9 +445,12 @@ async function fetchThaiTranslations(
   // Gemini validation: try models in priority order
   const geminiKey = process.env.GEMINI_API_KEY;
   const geminiModels = ["gemini-3.5-flash", "gemini-2.5-flash"];
+  const dsKey = process.env.DEEPSEEK_API_KEY;
+  const dsUrl = "https://opencode.ai/zen/go/v1/chat/completions";
+  let geminiDone = false;
   if (geminiKey && _definition && translations.size > 0) {
     const first = [...translations][0];
-    let geminiDone = false;
+    geminiDone = false;
     for (const model of geminiModels) {
       if (geminiDone) break;
       try {
@@ -499,6 +502,46 @@ async function fetchThaiTranslations(
         }
       } catch { /* try next model */ }
     }
+  }
+
+  // DeepSeek fallback: if Gemini all failed and DeepL result looks wrong
+  if (dsKey && _definition && !geminiDone && translations.size > 0) {
+    const first = [...translations][0];
+    try {
+      const prompt = "Word: " + word + "\\nDefinition: " + _definition + "\\nThai: " + first + "\\n\\nDoes the Thai match the definition? Answer YES or NO only.";
+      const res = await fetch(dsUrl, {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + dsKey, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "deepseek-v4-flash",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 100,
+          temperature: 0,
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const text = data?.choices?.[0]?.message?.content?.trim() || "";
+        if (text.startsWith("NO")) {
+          translations.clear();
+          // Try Google as fallback
+          const gRes = await fetch(
+            "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=th&dt=t&q=" + encodeURIComponent(word)
+          );
+          if (gRes.ok) {
+            const gData = await gRes.json();
+            if (Array.isArray(gData?.[0])) {
+              for (const item of gData[0]) {
+                if (Array.isArray(item) && item[0] && typeof item[0] === "string") {
+                  translations.add(item[0].trim());
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch { /* fall through */ }
   }
 
   // Fallback: Google Translate free endpoint
