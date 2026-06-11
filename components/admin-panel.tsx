@@ -1,19 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 
 export function AdminPanel() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const handleAction = async (endpoint: string, action: string) => {
+  const handleAction = async (endpoint: string, action: string, method: "POST" | "GET" = "POST") => {
     setLoading(true);
     setMessage(null);
 
     try {
-      const response = await fetch(endpoint, {
-        method: "POST",
+      const url = method === "GET" ? `${endpoint}?trigger=run-fetch-word` : endpoint;
+      const response = await fetch(url, {
+        method: method,
         headers: { "Content-Type": "application/json" },
       });
 
@@ -65,7 +65,7 @@ export function AdminPanel() {
 
           {/* Trigger Fetch */}
           <button
-            onClick={() => handleAction("/api/admin/trigger-fetch", "Trigger Fetch")}
+            onClick={() => handleAction("/api/admin/trigger-fetch", "Trigger Fetch", "POST")}
             disabled={loading}
             className="px-4 py-3 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 disabled:opacity-50 font-semibold transition"
           >
