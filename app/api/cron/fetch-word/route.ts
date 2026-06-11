@@ -464,7 +464,7 @@ async function fetchThaiTranslations(
               contents: [{ parts: [{ text: prompt }] }],
               generationConfig: { maxOutputTokens: 50, temperature: 0 },
             }),
-            signal: AbortSignal.timeout(15000),
+            signal: AbortSignal.timeout(5000),
           }
         );
         if (res.ok) {
@@ -518,7 +518,7 @@ async function fetchThaiTranslations(
           max_tokens: 100,
           temperature: 0,
         }),
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(5000),
       });
       if (res.ok) {
         const data = await res.json();
