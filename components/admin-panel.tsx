@@ -8,13 +8,20 @@ const exec = (cmd:string, val?:string) => document.execCommand(cmd, false, val);
 
 function RichEditor({ value, onChange }: { value:string; onChange:(v:string)=>void }) {
   const ref = useRef<HTMLDivElement>(null);
+  const isTyping = useRef(false);
 
+  // Sync from outside (only when not actively typing)
   useEffect(() => {
-    if (ref.current) ref.current.innerHTML = value;
+    if (ref.current && !isTyping.current) ref.current.innerHTML = value;
   }, [value]);
 
   const updateHtml = () => {
-    if (ref.current) onChange(ref.current.innerHTML);
+    if (ref.current) {
+      isTyping.current = true;
+      onChange(ref.current.innerHTML);
+      // Allow next external sync after a tick
+      requestAnimationFrame(() => { isTyping.current = false; });
+    }
   };
 
   return (
