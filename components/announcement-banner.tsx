@@ -10,19 +10,17 @@ export function AnnouncementBanner() {
         const res = await fetch("/api/announcement");
         const d = await res.json();
         if (!d.enabled) return;
-        // Check if this announcement has been dismissed (by content hash)
-        const hash = btoa(d.title + "::" + d.body).slice(0, 32);
+        // Simple hash that works with all Unicode
+        const key = d.title + "|" + d.body + "|" + (d.enabled ? "1" : "0");
+        const hash = key.length + "-" + key.slice(0, 20);
         if (sessionStorage.getItem("ann_hash") === hash) return;
         sessionStorage.setItem("ann_hash", hash);
         setData(d);
       } catch {}
     };
     check();
-
-    // Listen for bell click to re-show
-    const show = () => check();
-    window.addEventListener("show-announcement", show);
-    return () => window.removeEventListener("show-announcement", show);
+    window.addEventListener("show-announcement", check);
+    return () => window.removeEventListener("show-announcement", check);
   }, []);
 
   if (!data) return null;

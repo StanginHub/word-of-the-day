@@ -9,10 +9,9 @@ const exec = (cmd:string, val?:string) => document.execCommand(cmd, false, val);
 function RichEditor({ value, onChange }: { value:string; onChange:(v:string)=>void }) {
   const ref = useRef<HTMLDivElement>(null);
 
-  // Map text → HTML
   useEffect(() => {
-    if (ref.current && !ref.current.innerHTML) ref.current.innerHTML = value;
-  }, []);
+    if (ref.current) ref.current.innerHTML = value;
+  }, [value]);
 
   const updateHtml = () => {
     if (ref.current) onChange(ref.current.innerHTML);
