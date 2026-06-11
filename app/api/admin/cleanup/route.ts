@@ -5,11 +5,11 @@ export async function POST(request: Request) {
   try {
     const supabase = createServiceClient();
 
-    // Delete all records from daily_words
+    // Delete all records from daily_words using a simpler approach
     const { error } = await supabase
       .from("daily_words")
       .delete()
-      .neq("id", ""); // Delete all rows
+      .gt("id", "0"); // This will delete all rows
 
     if (error) {
       console.error("Delete error:", error);
