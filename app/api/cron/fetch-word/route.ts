@@ -508,7 +508,7 @@ async function fetchThaiTranslations(
   if (dsKey && _definition && !geminiDone && translations.size > 0) {
     const first = [...translations][0];
     try {
-      const prompt = "Word: " + word + "\\nDefinition: " + _definition + "\\nThai: " + first + "\\n\\nDoes the Thai match the definition? Answer YES or NO only.";
+      const prompt = "Word: " + word + "\\nDefinition: " + _definition + "\\nThai: " + first + "\\n\\nDoes the Thai match the definition? Reply YES or NO. If NO, give the correct Thai translation.";
       const res = await fetch(dsUrl, {
         method: "POST",
         headers: { "Authorization": "Bearer " + dsKey, "Content-Type": "application/json" },
