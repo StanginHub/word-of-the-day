@@ -626,6 +626,8 @@ export async function POST(request: Request) {
       success: true,
       word: entry.word,
       date,
+      thai_translations,
+      definition: entry.definition,
     });
   } catch (dbErr) {
     console.error("Supabase connection error:", dbErr);
