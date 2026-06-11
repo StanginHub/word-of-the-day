@@ -93,22 +93,14 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
     if (!translateInput.trim()) return;
     setTranslating(true); setTranslateResult("...");
     try {
-      // Try DeepL
-      const deeplRes = await fetch("https://api-free.deepl.com/v2/translate", {
+      const res = await fetch("/api/admin/translate", {
         method: "POST",
-        headers: { "Authorization": "DeepL-Auth-Key " + process.env.NEXT_PUBLIC_DEEPL_KEY, "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ text: translateInput.trim(), target_lang: "TH" }),
+        headers: { "Content-Type": "application/json", "Authorization": bPrefix() + " " + secret },
+        body: JSON.stringify({ word: translateInput.trim() }),
       });
-      if (deeplRes.ok) {
-        const d = await deeplRes.json();
-        setTranslateResult(d.translations?.[0]?.text || "?");
-      } else {
-        // Fallback to Google
-        const gRes = await fetch("https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=th&dt=t&q=" + encodeURIComponent(translateInput.trim()));
-        const d = await gRes.json();
-        setTranslateResult(d[0]?.[0]?.[0] || "?");
-      }
-    } catch(e) { setTranslateResult("Error: " + String(e)); }
+      const d = await res.json();
+      setTranslateResult(d.translation || "?");
+    } catch(e) { setTranslateResult("Error"); }
     finally { setTranslating(false); }
   };
 
