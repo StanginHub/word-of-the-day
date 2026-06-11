@@ -15,6 +15,8 @@ export async function POST(request: Request) {
     }
 
     const xml = await res.text();
+    console.log("RSS Feed fetched, length:", xml.length);
+    
     const $ = cheerio.load(xml, { xmlMode: true });
 
     const supabase = createServiceClient();
@@ -24,29 +26,56 @@ export async function POST(request: Request) {
       fetched_date: string;
     }> = [];
 
-    // Parse RSS items
-    $("item").each((_, el) => {
+    // Parse RSS items - try both item and entry tags
+    const entries = $("item, entry");
+    console.log("Found entries:", entries.length);
+
+    entries.each((_, el) => {
       const $item = $(el);
-      const title = $item.find("title").text().trim();
-      const description = $item.find("description").text().trim();
-      const pubDateStr = $item.find("pubDate").text().trim();
+      
+      // Try both title and summary/description
+      let title = $item.find("title").first().text().trim();
+      let description = $item.find("description").first().text().trim() || 
+                       $item.find("summary").first().text().trim() || "";
+
+      // Try pubDate or published
+      let pubDateStr = $item.find("pubDate").first().text().trim() ||
+                       $item.find("published").first().text().trim() || "";
+
+      console.log("Entry:", { title, description: description.substring(0, 30), pubDateStr });
 
       if (title) {
-        // Parse date from pubDate
-        const pubDate = new Date(pubDateStr);
-        const dateStr = pubDate.toISOString().split("T")[0];
+        try {
+          // Parse date - handle various formats
+          const pubDate = new Date(pubDateStr);
+          const dateStr = pubDate.toISOString().split("T")[0];
 
-        items.push({
-          word: title,
-          definition: description || null,
-          fetched_date: dateStr,
-        });
+          // Clean HTML from description if present
+          const cleanDesc = description
+            .replace(/<[^>]*>/g, "") // Remove HTML tags
+            .replace(/&amp;/g, "&")
+            .replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">")
+            .replace(/&quot;/g, '"')
+            .trim()
+            .substring(0, 500); // Limit length
+
+          items.push({
+            word: title,
+            definition: cleanDesc || null,
+            fetched_date: dateStr,
+          });
+        } catch (e) {
+          console.warn("Failed to parse entry:", e);
+        }
       }
     });
 
+    console.log("Items to insert:", items.length);
+
     if (items.length === 0) {
       return NextResponse.json(
-        { error: "No items found in RSS feed" },
+        { error: "No items found in RSS feed or could not parse items" },
         { status: 400 }
       );
     }
