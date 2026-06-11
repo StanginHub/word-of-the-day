@@ -29,14 +29,18 @@ function BadgesOf({ words, color }: { words: string[] | null; color: "emerald" |
     blue:    "border-blue-500   text-blue-700   bg-blue-50   hover:bg-blue-100",
     muted:   "border-muted-foreground/20 text-muted-foreground/70 bg-muted/50 hover:bg-muted/80",
   };
-  const base = (s: string) => "https://www.oxfordlearnersdictionaries.com/definition/english/" + encodeURIComponent(s.toLowerCase());
+  const base = (s: string) => {
+    // Skip Oxford link for multi-word phrases (would 404)
+    if (s.includes(" ")) return null;
+    return "https://www.oxfordlearnersdictionaries.com/definition/english/" + encodeURIComponent(s.toLowerCase());
+  };
   return (
     <div className="flex flex-wrap justify-center gap-2">
-      {words.map((s, i) => (
-        <a key={s + i} href={base(s)} target="_blank" rel="noopener noreferrer">
-          <Badge variant="outline" className={cn("text-sm px-3 py-1 cursor-pointer transition-colors", map[color])}>{s}</Badge>
-        </a>
-      ))}
+      {words.map((s, i) => {
+        const url = base(s);
+        const badge = <Badge variant="outline" className={cn("text-sm px-3 py-1 cursor-pointer transition-colors", map[color])}>{s}</Badge>;
+        return url ? <a key={s + i} href={url} target="_blank" rel="noopener noreferrer">{badge}</a> : <span key={s + i}>{badge}</span>;
+      })}
     </div>
   );
 }
@@ -81,13 +85,13 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
           {hasData ? (
             <div className="space-y-4">
               {w.synonyms_strongest && w.synonyms_strongest.length > 0 && (
-                <div className="bg-emerald-50/40 rounded-xl p-3 sm:p-3 sm:p-4 border border-emerald-200/40">
+                <div className="bg-emerald-50/40 rounded-xl p-3 sm:p-4 border border-emerald-200/40">
                 <p className="text-[11px] font-semibold text-emerald-700 tracking-wider uppercase mb-2">Strongest</p>
                 <BadgesOf words={w.synonyms_strongest} color="emerald" />
               </div>
             )}
             {w.synonyms_strong && w.synonyms_strong.length > 0 && (
-              <div className="bg-blue-50/40 rounded-xl p-3 sm:p-3 sm:p-4 border border-blue-200/40">
+              <div className="bg-blue-50/40 rounded-xl p-3 sm:p-4 border border-blue-200/40">
                   <p className="text-[11px] font-semibold text-blue-700 tracking-wider uppercase mb-2">Strong</p>
                   <BadgesOf words={w.synonyms_strong} color="blue" />
                 </div>
@@ -287,9 +291,18 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
                     <span className="text-xs font-mono text-muted-foreground/50 font-medium w-10 shrink-0">{fmt(pw.fetched_date)}</span>
                     {/* word */}
                     <span className="text-base font-semibold text-foreground group-hover:text-accent transition-colors shrink-0">{pw.word}</span>
-                    {/* dot + definition */}
+                    {/* definition (hidden on mobile) */}
                     <span className="text-muted-foreground/20 hidden sm:inline">·</span>
                     <span className="text-sm text-muted-foreground/50 truncate hidden sm:block max-w-xs">{pw.definition}</span>
+                    {/* GT link icon */}
+                    <span className="ml-1 shrink-0 hidden sm:inline-block">
+                      <a href={"https://translate.google.com/?sl=en&tl=th&text=" + encodeURIComponent(pw.word)} target="_blank" rel="noopener noreferrer"
+                         className="inline-flex items-center justify-center w-6 h-6 rounded text-muted-foreground/30 hover:text-accent hover:bg-accent/5 transition-all"
+                         title="Open in Google Translate"
+                         onClick={e => e.stopPropagation()}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a10 10 0 1 0 10 10h-10V2z"/><path d="M2 12h10"/><path d="M12 2v10"/></svg>
+                      </a>
+                    </span>
                     {/* Thai badges (right side) */}
                     <div className="ml-auto flex gap-1.5 shrink-0">
                       {thaiPreview.map((t, i) => (
