@@ -457,7 +457,7 @@ async function fetchThaiTranslations(
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: { maxOutputTokens: 50, temperature: 0 },
           }),
-          signal: AbortSignal.timeout(8000),
+          signal: AbortSignal.timeout(15000),
         }
       );
       if (res.ok) {
