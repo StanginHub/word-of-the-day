@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   if (!su || !sk) return NextResponse.json({error:"DB not configured"},{status:500});
   try {
     const sb = createClient(su, sk);
-    const { data: words } = await sb.from("daily_words").select("word,fetched_date,synonyms,synonyms_strongest,synonyms_strong,synonyms_weak,definition").order("fetched_date",{ascending:false});
+    const { data: words } = await sb.from("daily_words").select("word,fetched_date").is("thai_translations", null).order("fetched_date",{ascending:false});
     if (!words || words.length === 0) return NextResponse.json({success:true, enriched:0});
 
     const origin = new URL(request.url).origin;
