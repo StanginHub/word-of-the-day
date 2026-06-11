@@ -490,48 +490,10 @@ async function fetchThaiTranslations(
     }
   } catch { /* silent */ }
 
-  // Strategy 4: Translate the Oxford DEFINITION for contextually accurate Thai
-  // A bare word can have multiple meanings; translating the definition
-  // disambiguates and gives us Thai words matching the specific meaning.
-  const thaiStopWords = new Set([
-    "และ", "หรือ", "ที่", "ของ", "ใน", "การ", "ความ", "เป็น",
-    "ให้", "มี", "ไม่", "จะ", "ได้", "นี้", "นั้น", "กับ",
-    "เพื่อ", "โดย", "จาก", "แต่", "ว่า", "อย่าง", "หรือไม่",
-    "ซึ่ง", "ก็", "นะ", "คะ", "ครับ", "ค่ะ",
-  ]);
-
-  if (definition) {
-    try {
-      const res = await fetch(
-        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=th&dt=t&q=${encodeURIComponent(definition.slice(0, 200))}`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        let thaiText = "";
-        if (Array.isArray(data?.[0])) {
-          for (const item of data[0]) {
-            if (Array.isArray(item) && item[0] && typeof item[0] === "string") {
-              thaiText += item[0];
-            }
-          }
-        }
-        // Extract meaningful Thai words/phrases (split by whitespace/punctuation)
-        const words = thaiText.split(/[\s,.;!?]+/).filter((w) => {
-          const t = w.trim();
-          if (!t || t.length < 2) return false;
-          if (thaiStopWords.has(t)) return false;
-          return /[\u0E00-\u0E7F]/.test(t);
-        });
-        for (const w of words) translations.add(w);
-
-        // Also add the first ~30 chars as a compact summary
-        if (thaiText.length > 5) {
-          const summary = thaiText.slice(0, 35) + (thaiText.length > 35 ? "..." : "");
-          translations.add(summary.trim());
-        }
-      }
-    } catch { /* silent */ }
-  }
+  // Strategy 4: Translate definition (kept for context, but not the full sentence)
+  // We skip this because definition translations produce sentence fragments.
+  // Instead, we rely on synonym translations (Strategies 1-3) which are more accurate
+  // because synonyms narrow down the specific meaning.
 
   return [...translations];
 }
