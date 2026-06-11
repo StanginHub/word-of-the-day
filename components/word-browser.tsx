@@ -186,7 +186,7 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
 
           {/* IPA + PoS */}
           <div className="flex items-center justify-center gap-3 text-muted-foreground mt-4 mb-8">
-            {w.ipa && <span className="text-base font-mono tracking-tight">/{w.ipa}/</span>}
+            {w.ipa && <span className="text-base font-ipa tracking-tight">/{w.ipa}/</span>}
             {w.pos && <Badge variant="secondary" className="text-[11px] uppercase tracking-wider">{w.pos}</Badge>}
           </div>
 

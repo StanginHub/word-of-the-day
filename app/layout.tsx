@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Gentium_Plus } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 
@@ -10,6 +10,12 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+const gentiumPlus = Gentium_Plus({
+  variable: "--font-gentium",
+  weight: ["400", "700"],
   subsets: ["latin"],
 });
 
@@ -27,7 +33,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${gentiumPlus.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground antialiased"
             style={{paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)"}}>
@@ -37,7 +43,7 @@ export default function RootLayout({
               Word of the Day
             </Link>
             <div className="flex items-center gap-3">
-              <span className="text-[11px] font-mono text-muted-foreground/50 tracking-wider">TH</span>
+              <span className="text-[11px] text-muted-foreground/50 tracking-wider">TH</span>
             </div>
           </div>
         </header>

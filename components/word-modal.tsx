@@ -54,7 +54,7 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
           {/* IPA and PoS */}
           <div className="flex items-center justify-center gap-3 text-muted-foreground">
             {word.ipa && (
-              <span className="text-base font-mono tracking-tight">/{word.ipa}/</span>
+              <span className="text-base font-ipa tracking-tight">/{word.ipa}/</span>
             )}
             {word.pos && (
               <Badge variant="secondary" className="text-xs uppercase tracking-wider">
