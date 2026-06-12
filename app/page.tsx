@@ -28,10 +28,13 @@ export interface DailyWord {
 export default async function HomePage() {
   const supabase = await createClient();
 
-  const { data: words, error } = await supabase
-    .from("daily_words")
-    .select("*")
-    .order("fetched_date", { ascending: false });
+  const [{ data: words, error }, annRaw] = await Promise.all([
+    supabase.from("daily_words").select("*").order("fetched_date", { ascending: false }),
+    supabase.from("announcements" as any).select("*").eq("id", 1).maybeSingle(),
+  ]);
+
+  const ann = annRaw?.data || annRaw;
+  const initialAnn = (ann?.enabled && ann?.title) ? { title: ann.title, body: ann.body } : null;
 
   if (error || !words || words.length === 0) {
     return (
@@ -52,7 +55,7 @@ export default async function HomePage() {
         </div>
       }
     >
-      <AnnouncementBanner />
+      <AnnouncementBanner initialAnnouncement={initialAnn} />
       <WordBrowser words={words as DailyWord[]} />
     </Suspense>
   );
