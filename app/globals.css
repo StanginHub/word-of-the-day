@@ -8,6 +8,21 @@
   .font-ipa {
     font-family: var(--font-gentium), serif;
   }
+
+  /* TipTap editor content */
+  .tiptap-editor .ProseMirror {
+    outline: none;
+    min-height: 120px;
+  }
+  .tiptap-editor .ProseMirror h2 { font-size: 1.25rem; font-weight: 700; margin: 0.5em 0; }
+  .tiptap-editor .ProseMirror h3 { font-size: 1.1rem; font-weight: 600; margin: 0.4em 0; }
+  .tiptap-editor .ProseMirror ul, 
+  .tiptap-editor .ProseMirror ol { padding-left: 1.5em; margin: 0.3em 0; }
+  .tiptap-editor .ProseMirror li { margin: 0.15em 0; }
+  .tiptap-editor .ProseMirror p { margin: 0.3em 0; }
+  .tiptap-editor .ProseMirror strong { font-weight: 700; }
+  .tiptap-editor .ProseMirror em { font-style: italic; }
+  .tiptap-editor .ProseMirror u { text-decoration: underline; }
 }
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
