@@ -1,26 +1,31 @@
 "use client";
 import { useState, useEffect } from "react";
 
-export function AnnouncementBanner({ initialAnnouncement }: { initialAnnouncement?: {title:string;body:string} | null }) {
-  const [data, setData] = useState<{title:string;body:string} | null>(
-    initialAnnouncement || null
-  );
+export function AnnouncementBanner() {
+  const [data, setData] = useState<{title:string;body:string;enabled:boolean} | null>(null);
 
-  // If no initial data, check API after mount
+  const check = async (force = false) => {
+    try {
+      const res = await fetch("/api/announcement");
+      const d = await res.json();
+      if (!d.enabled) return;
+      // Skip hash check when forced (bell click)
+      if (!force) {
+        const key = d.title + "|" + d.body;
+        const hash = key.length + "-" + key.slice(0, 20);
+        if (sessionStorage.getItem("ann_hash") === hash) return;
+        sessionStorage.setItem("ann_hash", hash);
+      }
+      setData(d);
+    } catch {}
+  };
+
   useEffect(() => {
-    if (initialAnnouncement) return; // already have server data
-    const check = async () => {
-      try {
-        const res = await fetch("/api/announcement");
-        const d = await res.json();
-        if (d.enabled) setData(d);
-      } catch {}
-    };
     check();
-    const handler = () => check();
+    const handler = () => check(true); // force = true on bell click
     window.addEventListener("show-announcement", handler);
     return () => window.removeEventListener("show-announcement", handler);
-  }, [initialAnnouncement]);
+  }, []);
 
   if (!data) return null;
 

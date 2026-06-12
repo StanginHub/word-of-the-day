@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Gentium_Plus } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { BellGif } from "@/components/bell-gif";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -55,6 +56,7 @@ export default function RootLayout({
         <main className="flex-1">{children}</main>
 
         <BellGif />
+        <SpeedInsights />
       </body>
     </html>
   );
