@@ -7,17 +7,29 @@ export function AnnouncementBanner({ initialAnnouncement }: { initialAnnouncemen
   const [data, setData] = useState<{title:string;body:string} | null>(null);
   const savedRef = useRef<{title:string;body:string} | null>(null);
 
-  // SSR data: only show if localStorage hash != current content
+  // SSR data → show if not dismissed
   useEffect(() => {
     if (!initialAnnouncement) return;
-    const body = initialAnnouncement.body;
-    const hash = body.length + "-" + body.slice(0, 20);
+    const hash = initialAnnouncement.body.length + "-" + initialAnnouncement.body.slice(0, 20);
     if (localStorage.getItem(LS_KEY) === hash) return;
     setData(initialAnnouncement);
     savedRef.current = initialAnnouncement;
   }, [initialAnnouncement]);
 
-  // Bell click: always re-show from saved data
+  // Auto-fetch if SSR gave nothing (e.g. page.tsx couldn't load table)
+  useEffect(() => {
+    if (initialAnnouncement) return; // SSR already has data
+    fetch("/api/announcement").then(r => r.json()).then(d => {
+      if (d.enabled) {
+        const hash = d.body.length + "-" + d.body.slice(0, 20);
+        if (localStorage.getItem(LS_KEY) === hash) return;
+        setData(d);
+        savedRef.current = d;
+      }
+    }).catch(() => {});
+  }, [initialAnnouncement]);
+
+  // Bell click → re-show from saved
   useEffect(() => {
     const show = () => {
       if (savedRef.current) setData(savedRef.current);
@@ -41,7 +53,7 @@ export function AnnouncementBanner({ initialAnnouncement }: { initialAnnouncemen
           <h2 className="text-lg font-bold text-foreground">{data.title}</h2>
         </div>
         <div className="px-6 pb-4 overflow-y-auto flex-1 min-h-0">
-          <div className="text-sm text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{__html: data.body}} />
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{data.body}</p>
         </div>
         <div className="px-6 py-3 border-t border-border flex justify-center">
           <button onClick={dismiss}
