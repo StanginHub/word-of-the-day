@@ -11,36 +11,24 @@ function exec(cmd: string, val?: string) {
 
 function RichEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [sel, setSel] = useState<Range | null>(null);
+  const inited = useRef(false);
 
-  // Restore selection before executing a command
-  const wrapCmd = useCallback((cmd: string, val?: string) => {
-    if (sel) {
-      const r = sel;
-      const s = window.getSelection();
-      if (s) { s.removeAllRanges(); s.addRange(r); }
-    }
-    exec(cmd, val);
-    if (ref.current) onChange(ref.current.innerHTML);
-    ref.current?.focus();
-  }, [sel, onChange]);
-
-  const updateSel = useCallback(() => {
-    const s = window.getSelection();
-    if (s && s.rangeCount > 0 && ref.current && ref.current.contains(s.anchorNode as Node)) {
-      setSel(s.getRangeAt(0).cloneRange());
-    }
-  }, []);
-
-  // Set initial content once on mount
+  // Set innerHTML ONLY on mount
   useEffect(() => {
-    if (ref.current && ref.current.innerHTML !== value) {
+    if (ref.current && !inited.current) {
       ref.current.innerHTML = value;
+      inited.current = true;
     }
-  }, []); // key prop handles remount
+  }, []); // never re-run
 
   const onInput = useCallback(() => {
     if (ref.current) onChange(ref.current.innerHTML);
+  }, [onChange]);
+
+  const wrapCmd = useCallback((cmd: string, val?: string) => {
+    exec(cmd, val);
+    if (ref.current) onChange(ref.current.innerHTML);
+    ref.current?.focus();
   }, [onChange]);
 
   const toolbar = [
@@ -80,8 +68,6 @@ function RichEditor({ value, onChange }: { value: string; onChange: (v: string) 
         suppressContentEditableWarning
         className="px-3 py-2 text-sm bg-background min-h-[120px] focus:outline-none"
         onInput={onInput}
-        onMouseUp={updateSel}
-        onKeyUp={updateSel}
         dangerouslySetInnerHTML={{ __html: value }}
       />
     </div>
