@@ -10,28 +10,35 @@ export function AnnouncementBanner({ initialAnnouncement }: { initialAnnouncemen
     if (!initialAnnouncement) return;
     const key = initialAnnouncement.title + "|" + initialAnnouncement.body;
     const hash = key.length + "-" + key.slice(0, 20);
-    // Show only if NOT dismissed this specific content
     if (sessionStorage.getItem("ann_hash") === hash) return;
+    sessionStorage.setItem("ann_hash", hash);
     setData(initialAnnouncement);
     savedRef.current = initialAnnouncement;
   }, [initialAnnouncement]);
 
-  // Register bell click listener once
+  // Always register event listener for bell click (once)
   useEffect(() => {
     const show = () => {
-      if (savedRef.current) setData(savedRef.current);
+      if (savedRef.current) {
+        // Re-show from saved data (ignoring hash)
+        setData(savedRef.current);
+      } else {
+        fetch("/api/announcement").then(r => r.json()).then(d => {
+          if (d.enabled) {
+            setData(d);
+            savedRef.current = d;
+          }
+        }).catch(() => {});
+      }
     };
     window.addEventListener("show-announcement", show);
     return () => window.removeEventListener("show-announcement", show);
-  }, []);
+  }, []); // once
 
   if (!data) return null;
 
   const dismiss = () => {
-    // Store the current content's hash so it won't show again on refresh
-    const key = data.title + "|" + data.body;
-    const hash = key.length + "-" + key.slice(0, 20);
-    sessionStorage.setItem("ann_hash", hash);
+    sessionStorage.setItem("ann_hash", "dismissed");
     setData(null);
   };
 
