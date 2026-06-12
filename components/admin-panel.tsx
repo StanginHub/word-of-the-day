@@ -1,61 +1,59 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
-import TextAlign from "@tiptap/extension-text-align";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 type Word = {id:string;word:string;fetched_date:string;definition:string|null;pos:string|null;ipa:string|null;cefr:string|null;topic:string|null;thai_translations:string[]|null;synonyms:string[]|null};
 
-// ── WYSIWYG RichEditor (TipTap) ──
+// ── WYSIWYG RichEditor ──
+
+function exec(cmd: string, val?: string) {
+  document.execCommand(cmd, false, val);
+}
 
 function RichEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
-      }),
-      Underline,
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
-    ],
-    content: value || "",
-    onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
-    },
-    editorProps: {
-      attributes: {
-        class: "px-3 py-2 text-sm bg-background min-h-[120px] focus:outline-none prose prose-sm max-w-none",
-      },
-    },
-  });
+  const ref = useRef<HTMLTextAreaElement>(null);
 
-  // If external value changes (key remount), editor gets new content via key
+  const wrap = (before: string, after: string) => {
+    const ta = ref.current;
+    if (!ta) return;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const text = ta.value;
+    const sel = text.substring(start, end);
+    const rep = before + sel + after;
+    ta.value = text.substring(0, start) + rep + text.substring(end);
+    ta.focus();
+    onChange(ta.value);
+    // Restore cursor
+    requestAnimationFrame(() => {
+      ta.selectionStart = ta.selectionEnd = start + before.length + sel.length;
+    });
+  };
 
-  if (!editor) return null;
-
-  const ToolBtn = ({ label, action, isActive }: { label: string; action: () => void; isActive?: boolean }) => (
-    <button onMouseDown={e => { e.preventDefault(); action(); }}
-      className={"px-2 py-0.5 rounded text-xs transition " + (isActive ? "bg-accent/15 text-accent font-semibold" : "hover:bg-muted")}>
-      {label}
-    </button>
-  );
+  const tags = [
+    ["B", "<b>", "</b>"], ["I", "<i>", "</i>"], ["U", "<u>", "</u>"],
+    ["|"],
+    ["H2", "<h2>", "</h2>"], ["H3", "<h3>", "</h3>"], ["P", "<p>", "</p>"],
+    ["|"],
+    ["•", "<ul><li>", "</li></ul>"], ["1.", "<ol><li>", "</li></ol>"],
+    ["|"],
+    ["Clear", "", ""],
+  ];
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden tiptap-editor">
-      <div className="flex flex-wrap gap-0.5 p-1.5 bg-muted/30 border-b border-border">
-        <ToolBtn label="B" action={() => editor.chain().focus().toggleBold().run()} isActive={editor.isActive("bold")} />
-        <ToolBtn label="I" action={() => editor.chain().focus().toggleItalic().run()} isActive={editor.isActive("italic")} />
-        <ToolBtn label="U" action={() => editor.chain().focus().toggleUnderline().run()} isActive={editor.isActive("underline")} />
-        <span className="w-px h-5 bg-border mx-0.5 self-center" />
-        <ToolBtn label="H2" action={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} isActive={editor.isActive("heading", { level: 2 })} />
-        <ToolBtn label="H3" action={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} isActive={editor.isActive("heading", { level: 3 })} />
-        <span className="w-px h-5 bg-border mx-0.5 self-center" />
-        <ToolBtn label="•" action={() => editor.chain().focus().toggleBulletList().run()} isActive={editor.isActive("bulletList")} />
-        <ToolBtn label="1." action={() => editor.chain().focus().toggleOrderedList().run()} isActive={editor.isActive("orderedList")} />
-        <span className="w-px h-5 bg-border mx-0.5 self-center" />
-        <ToolBtn label="Clear" action={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} />
+    <div className="border border-border rounded-lg overflow-hidden">
+      <div className="flex flex-wrap gap-0.5 p-1.5 bg-muted/30 border-b border-border"
+        onMouseDown={e => e.preventDefault()}>
+        {tags.map((item, i) => {
+          if (item[0] === "|") return <span key={i} className="w-px h-5 bg-border mx-0.5 self-center" />;
+          const [label, before, after] = item;
+          return <button key={i} onMouseDown={e => { e.preventDefault(); wrap(before as string, after as string); }}
+            className={"px-2 py-0.5 rounded text-xs hover:bg-muted transition " + (label === "Clear" ? "text-muted-foreground/60" : "")}>{label}</button>;
+        })}
       </div>
-      <EditorContent editor={editor} />
+      <textarea ref={ref} value={value} onChange={e => onChange(e.target.value)}
+        className="w-full px-3 py-2 text-sm bg-background min-h-[120px] resize-y focus:outline-none"
+        placeholder="Type announcement here..."
+        rows={4}
+      />
     </div>
   );
 }
