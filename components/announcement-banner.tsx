@@ -1,22 +1,23 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 
+const LS_KEY = "ann_hash";
+
 export function AnnouncementBanner({ initialAnnouncement }: { initialAnnouncement?: {title:string;body:string} | null }) {
   const [data, setData] = useState<{title:string;body:string} | null>(null);
   const savedRef = useRef<{title:string;body:string} | null>(null);
 
-  // Check hash against initial SSR data
+  // SSR data: only show if localStorage hash != current content
   useEffect(() => {
     if (!initialAnnouncement) return;
-    const key = initialAnnouncement.title + "|" + initialAnnouncement.body;
-    const hash = key.length + "-" + key.slice(0, 20);
-    // Show only if NOT dismissed this specific content
-    if (sessionStorage.getItem("ann_hash") === hash) return;
+    const body = initialAnnouncement.body;
+    const hash = body.length + "-" + body.slice(0, 20);
+    if (localStorage.getItem(LS_KEY) === hash) return;
     setData(initialAnnouncement);
     savedRef.current = initialAnnouncement;
   }, [initialAnnouncement]);
 
-  // Register bell click listener once
+  // Bell click: always re-show from saved data
   useEffect(() => {
     const show = () => {
       if (savedRef.current) setData(savedRef.current);
@@ -28,10 +29,8 @@ export function AnnouncementBanner({ initialAnnouncement }: { initialAnnouncemen
   if (!data) return null;
 
   const dismiss = () => {
-    // Store the current content's hash so it won't show again on refresh
-    const key = data.title + "|" + data.body;
-    const hash = key.length + "-" + key.slice(0, 20);
-    sessionStorage.setItem("ann_hash", hash);
+    const hash = data.body.length + "-" + data.body.slice(0, 20);
+    localStorage.setItem(LS_KEY, hash);
     setData(null);
   };
 

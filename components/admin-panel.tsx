@@ -10,65 +10,49 @@ function exec(cmd: string, val?: string) {
 }
 
 function RichEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inited = useRef(false);
+  const ref = useRef<HTMLTextAreaElement>(null);
 
-  // Set innerHTML ONLY on mount
-  useEffect(() => {
-    if (ref.current && !inited.current) {
-      ref.current.innerHTML = value;
-      inited.current = true;
-    }
-  }, []); // never re-run
+  const wrap = (before: string, after: string) => {
+    const ta = ref.current;
+    if (!ta) return;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const text = ta.value;
+    const sel = text.substring(start, end);
+    const rep = before + sel + after;
+    ta.value = text.substring(0, start) + rep + text.substring(end);
+    ta.focus();
+    onChange(ta.value);
+    // Restore cursor
+    requestAnimationFrame(() => {
+      ta.selectionStart = ta.selectionEnd = start + before.length + sel.length;
+    });
+  };
 
-  const onInput = useCallback(() => {
-    if (ref.current) onChange(ref.current.innerHTML);
-  }, [onChange]);
-
-  const wrapCmd = useCallback((cmd: string, val?: string) => {
-    exec(cmd, val);
-    if (ref.current) onChange(ref.current.innerHTML);
-    ref.current?.focus();
-  }, [onChange]);
-
-  const toolbar = [
-    [() => { exec("bold"); onInput(); }, "B", "font-bold"],
-    [() => { exec("italic"); onInput(); }, "I", "italic"],
-    [() => { exec("underline"); onInput(); }, "U", "underline"],
+  const tags = [
+    ["B", "<b>", "</b>"], ["I", "<i>", "</i>"], ["U", "<u>", "</u>"],
     ["|"],
-    [() => { exec("formatBlock", "<h2>"); onInput(); }, "H2", ""],
-    [() => { exec("formatBlock", "<h3>"); onInput(); }, "H3", ""],
-    [() => { exec("formatBlock", "<p>"); onInput(); }, "P", ""],
+    ["H2", "<h2>", "</h2>"], ["H3", "<h3>", "</h3>"], ["P", "<p>", "</p>"],
     ["|"],
-    [() => { exec("insertUnorderedList"); onInput(); }, "•", ""],
-    [() => { exec("insertOrderedList"); onInput(); }, "1.", ""],
+    ["•", "<ul><li>", "</li></ul>"], ["1.", "<ol><li>", "</li></ol>"],
     ["|"],
-    [() => { exec("removeFormat"); onInput(); }, "Clear", "text-muted-foreground/60"],
+    ["Clear", "", ""],
   ];
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       <div className="flex flex-wrap gap-0.5 p-1.5 bg-muted/30 border-b border-border"
-        onMouseDown={e => e.preventDefault()} // Prevent losing selection
-      >
-        {toolbar.map((btn, i) => {
-          if (btn[0] === "|") return <span key={i} className="w-px h-5 bg-border mx-0.5 self-center" />;
-          const [action, label, cls] = btn;
-          return (
-            <button key={i} onMouseDown={e => { e.preventDefault(); (action as Function)(); }}
-              className={"px-2 py-0.5 rounded text-xs hover:bg-muted transition " + cls}>
-              {label as string}
-            </button>
-          );
+        onMouseDown={e => e.preventDefault()}>
+        {tags.map((item, i) => {
+          if (item[0] === "|") return <span key={i} className="w-px h-5 bg-border mx-0.5 self-center" />;
+          const [label, before, after] = item;
+          return <button key={i} onMouseDown={e => { e.preventDefault(); wrap(before as string, after as string); }}
+            className={"px-2 py-0.5 rounded text-xs hover:bg-muted transition " + (label === "Clear" ? "text-muted-foreground/60" : "")}>{label}</button>;
         })}
       </div>
-      <div
-        ref={ref}
-        contentEditable
-        suppressContentEditableWarning
-        className="px-3 py-2 text-sm bg-background min-h-[120px] focus:outline-none"
-        onInput={onInput}
-        dangerouslySetInnerHTML={{ __html: value }}
+      <textarea ref={ref} value={value} onChange={e => onChange(e.target.value)}
+        className="w-full px-3 py-2 text-sm bg-background min-h-[120px] resize-y focus:outline-none"
+        placeholder="Type announcement here..."
+        rows={4}
       />
     </div>
   );
