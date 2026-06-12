@@ -11,57 +11,45 @@ function exec(cmd: string, val?: string) {
 
 function RichEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [sel, setSel] = useState<Range | null>(null);
 
-  // Restore selection before executing a command
-  const wrapCmd = useCallback((cmd: string, val?: string) => {
-    if (sel) {
-      const r = sel;
-      const s = window.getSelection();
-      if (s) { s.removeAllRanges(); s.addRange(r); }
-    }
-    exec(cmd, val);
-    if (ref.current) onChange(ref.current.innerHTML);
-    ref.current?.focus();
-  }, [sel, onChange]);
-
-  const updateSel = useCallback(() => {
-    const s = window.getSelection();
-    if (s && s.rangeCount > 0 && ref.current && ref.current.contains(s.anchorNode as Node)) {
-      setSel(s.getRangeAt(0).cloneRange());
-    }
-  }, []);
-
-  // Set initial content once on mount
+  // Sync external changes (e.g. loading different announcement)
+  // but ONLY when DOM content actually differs — keyboard typing
+  // doesn't trigger because DOM.innerHTML === value.
   useEffect(() => {
     if (ref.current && ref.current.innerHTML !== value) {
       ref.current.innerHTML = value;
     }
-  }, []); // key prop handles remount
+  }); // no deps — runs every render, skips when DOM matches
 
   const onInput = useCallback(() => {
     if (ref.current) onChange(ref.current.innerHTML);
   }, [onChange]);
 
+  const execCmd = useCallback((cmd: string, val?: string) => {
+    exec(cmd, val);
+    if (ref.current) onChange(ref.current.innerHTML);
+    ref.current?.focus();
+  }, [onChange]);
+
   const toolbar = [
-    [() => { exec("bold"); onInput(); }, "B", "font-bold"],
-    [() => { exec("italic"); onInput(); }, "I", "italic"],
-    [() => { exec("underline"); onInput(); }, "U", "underline"],
+    [() => execCmd("bold"), "B", "font-bold"],
+    [() => execCmd("italic"), "I", "italic"],
+    [() => execCmd("underline"), "U", "underline"],
     ["|"],
-    [() => { exec("formatBlock", "<h2>"); onInput(); }, "H2", ""],
-    [() => { exec("formatBlock", "<h3>"); onInput(); }, "H3", ""],
-    [() => { exec("formatBlock", "<p>"); onInput(); }, "P", ""],
+    [() => execCmd("formatBlock", "<h2>"), "H2", ""],
+    [() => execCmd("formatBlock", "<h3>"), "H3", ""],
+    [() => execCmd("formatBlock", "<p>"), "P", ""],
     ["|"],
-    [() => { exec("insertUnorderedList"); onInput(); }, "•", ""],
-    [() => { exec("insertOrderedList"); onInput(); }, "1.", ""],
+    [() => execCmd("insertUnorderedList"), "•", ""],
+    [() => execCmd("insertOrderedList"), "1.", ""],
     ["|"],
-    [() => { exec("removeFormat"); onInput(); }, "Clear", "text-muted-foreground/60"],
+    [() => execCmd("removeFormat"), "Clear", "text-muted-foreground/60"],
   ];
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       <div className="flex flex-wrap gap-0.5 p-1.5 bg-muted/30 border-b border-border"
-        onMouseDown={e => e.preventDefault()} // Prevent losing selection
+        onMouseDown={e => e.preventDefault()}
       >
         {toolbar.map((btn, i) => {
           if (btn[0] === "|") return <span key={i} className="w-px h-5 bg-border mx-0.5 self-center" />;
@@ -80,9 +68,6 @@ function RichEditor({ value, onChange }: { value: string; onChange: (v: string) 
         suppressContentEditableWarning
         className="px-3 py-2 text-sm bg-background min-h-[120px] focus:outline-none"
         onInput={onInput}
-        onMouseUp={updateSel}
-        onKeyUp={updateSel}
-        dangerouslySetInnerHTML={{ __html: value }}
       />
     </div>
   );
