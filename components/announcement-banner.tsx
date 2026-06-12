@@ -1,30 +1,46 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export function AnnouncementBanner({ initialAnnouncement }: { initialAnnouncement?: {title:string;body:string} | null }) {
-  const [data, setData] = useState<{title:string;body:string} | null>(
-    initialAnnouncement || null
-  );
+  const [data, setData] = useState<{title:string;body:string} | null>(null);
+  const savedRef = useRef<{title:string;body:string} | null>(null);
 
-  // If no initial data, check API after mount
+  // Check hash against initial SSR data
   useEffect(() => {
-    if (initialAnnouncement) return; // already have server data
-    const check = async () => {
-      try {
-        const res = await fetch("/api/announcement");
-        const d = await res.json();
-        if (d.enabled) setData(d);
-      } catch {}
-    };
-    check();
-    const handler = () => check();
-    window.addEventListener("show-announcement", handler);
-    return () => window.removeEventListener("show-announcement", handler);
+    if (!initialAnnouncement) return;
+    const key = initialAnnouncement.title + "|" + initialAnnouncement.body;
+    const hash = key.length + "-" + key.slice(0, 20);
+    if (sessionStorage.getItem("ann_hash") === hash) return;
+    sessionStorage.setItem("ann_hash", hash);
+    setData(initialAnnouncement);
+    savedRef.current = initialAnnouncement;
   }, [initialAnnouncement]);
+
+  // Always register event listener for bell click (once)
+  useEffect(() => {
+    const show = () => {
+      if (savedRef.current) {
+        // Re-show from saved data (ignoring hash)
+        setData(savedRef.current);
+      } else {
+        fetch("/api/announcement").then(r => r.json()).then(d => {
+          if (d.enabled) {
+            setData(d);
+            savedRef.current = d;
+          }
+        }).catch(() => {});
+      }
+    };
+    window.addEventListener("show-announcement", show);
+    return () => window.removeEventListener("show-announcement", show);
+  }, []); // once
 
   if (!data) return null;
 
-  const dismiss = () => setData(null);
+  const dismiss = () => {
+    sessionStorage.setItem("ann_hash", "dismissed");
+    setData(null);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
