@@ -268,7 +268,7 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
             <input type="text" placeholder="Title" value={annForm.title}
               onChange={e => setAnnForm({...annForm, title: e.target.value})}
               className="w-full px-3 py-1.5 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-accent/30" />
-            <RichEditor key={annForm.body} value={annForm.body} onChange={v => setAnnForm({...annForm, body: v})} />
+            <RichEditor value={annForm.body} onChange={v => setAnnForm({...annForm, body: v})} />
             <div className="flex gap-2 items-center">
               <label className="flex items-center gap-2 cursor-pointer text-sm">
                 <input type="checkbox" checked={annForm.enabled} onChange={e => setAnnForm({...annForm, enabled: e.target.checked})} className="accent-accent" />
