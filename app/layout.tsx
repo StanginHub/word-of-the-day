@@ -43,7 +43,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground antialiased"
             style={{paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)"}}>
         <link rel="preconnect" href="https://yfohzxxvttdayuyefbdi.supabase.co" />
-        <header className="border-b [...]
+        <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
           <div className="mx-auto flex max-w-4xl items-center justify-between px-4 sm:px-6 py-4" style={{paddingLeft: "max(1rem, env(safe-area-inset-left, 1rem))", paddingRight: "max(1rem, env(safe-area-inset-right, 1rem))"}}>
             <Link href="/" className="text-lg font-semibold tracking-tight text-foreground hover:text-accent transition-colors">
               Word of the Day
