@@ -1,44 +1,17 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 type Word = {id:string;word:string;fetched_date:string;definition:string|null;pos:string|null;ipa:string|null;cefr:string|null;topic:string|null;thai_translations:string[]|null;synonyms:string[]|null};
 
-// ── Textarea with HTML tag toolbar ──
+// ── Simple textarea ──
 
 function RichEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-
-  const wrap = (before: string, after: string) => {
-    const ta = ref.current;
-    if (!ta) return;
-    const start = ta.selectionStart, end = ta.selectionEnd;
-    const sel = ta.value.substring(start, end);
-    ta.value = ta.value.substring(0, start) + before + sel + after + ta.value.substring(end);
-    ta.focus();
-    onChange(ta.value);
-  };
-
-  const tools = [
-    ["B","<b>","</b>"], ["I","<i>","</i>"], ["U","<u>","</u>"],
-    ["|"], ["H2","<h2>","</h2>"], ["H3","<h3>","</h3>"],
-    ["|"], ["•","<ul><li>","</li></ul>"], ["1.","<ol><li>","</li></ol>"],
-    ["|"], ["Clear","",""],
-  ];
-
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
-      <div className="flex flex-wrap gap-0.5 p-1.5 bg-muted/30 border-b border-border">
-        {tools.map((t, i) => {
-          if (t[0] === "|") return <span key={i} className="w-px h-5 bg-border mx-0.5 self-center" />;
-          return <button key={i} onMouseDown={e => { e.preventDefault(); wrap(t[1], t[2]); }}
-            className="px-2 py-0.5 rounded text-xs hover:bg-muted transition">{t[0]}</button>;
-        })}
-      </div>
-      <textarea ref={ref} value={value} onChange={e => onChange(e.target.value)}
-        className="w-full px-3 py-2 text-sm bg-background min-h-[120px] resize-y focus:outline-none"
-        rows={4} placeholder="Type announcement here..."
-      />
-    </div>
+    <textarea value={value} onChange={e => onChange(e.target.value)}
+      className="w-full px-3 py-2 text-sm bg-background min-h-[120px] focus:outline-none border border-border rounded-lg resize-y"
+      placeholder="Type announcement here..."
+      rows={4}
+    />
   );
 }
 
@@ -373,7 +346,7 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
               <h2 className="text-lg font-bold">{annForm.title || "(no title)"}</h2>
             </div>
             <div className="px-6 pb-4 overflow-y-auto flex-1 min-h-0">
-              <div className="text-sm text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{__html: annForm.body || "(no body)"}} />
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{annForm.body || "(no body)"}</p>
             </div>
             <div className="px-6 py-3 border-t border-border flex justify-center gap-2">
               <button onClick={() => setShowAnnPreview(false)}
