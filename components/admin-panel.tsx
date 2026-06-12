@@ -346,7 +346,7 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
               <h2 className="text-lg font-bold">{annForm.title || "(no title)"}</h2>
             </div>
             <div className="px-6 pb-4 overflow-y-auto flex-1 min-h-0">
-              <div className="text-sm text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{__html: annForm.body || "(no body)"}} />
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{annForm.body || "(no body)"}</p>
             </div>
             <div className="px-6 py-3 border-t border-border flex justify-center gap-2">
               <button onClick={() => setShowAnnPreview(false)}
