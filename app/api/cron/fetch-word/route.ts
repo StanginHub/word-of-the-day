@@ -486,10 +486,12 @@ async function fetchThaiTranslations(
 
 export async function POST(request: Request) {
   // ---- auth guard ----
+  // Vercel cron sends x-vercel-cron header (not Authorization)
   const auth = request.headers.get("Authorization") || "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : auth;
+  const cronHeader = request.headers.get("x-vercel-cron") || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : cronHeader.trim();
 
-  if (!process.env.CRON_SECRET || token !== process.env.CRON_SECRET) {
+  if (!process.env.CRON_SECRET || token !== process.env.CRON_SECRET?.trim()) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
