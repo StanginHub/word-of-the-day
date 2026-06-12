@@ -1,13 +1,18 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
 import type { DailyWord } from "@/app/page";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import WordModal from "@/components/word-modal";
 import { cn } from "@/lib/utils";
+
+const WordModal = dynamic(() => import("@/components/word-modal"), {
+  ssr: false,
+  loading: () => null,
+});
 
 // ----- helpers -----
 function fmt(d: string): string {
