@@ -100,14 +100,14 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
           {hasData ? (
             <div className="space-y-4">
               {w.synonyms_strongest && w.synonyms_strongest.length > 0 && (
-                <div className="bg-emerald-50/40 rounded-xl p-3 sm:p-4 border border-emerald-200/40">
-                <p className="text-[11px] font-semibold text-emerald-700 tracking-wider uppercase mb-2">Strongest</p>
+                <div className="bg-emerald-50/40 dark:bg-emerald-950/30 rounded-xl p-3 sm:p-4 border border-emerald-200/40 dark:border-emerald-700/40">
+                <p className="text-[11px] font-semibold text-emerald-700 tracking-wider uppercase mb-2 dark:text-emerald-300">Strongest</p>
                 <BadgesOf words={w.synonyms_strongest} color="emerald" />
               </div>
             )}
             {w.synonyms_strong && w.synonyms_strong.length > 0 && (
-              <div className="bg-blue-50/40 rounded-xl p-3 sm:p-4 border border-blue-200/40">
-                  <p className="text-[11px] font-semibold text-blue-700 tracking-wider uppercase mb-2">Strong</p>
+              <div className="bg-blue-50/40 dark:bg-blue-950/30 rounded-xl p-3 sm:p-4 border border-blue-200/40 dark:border-blue-700/40">
+                  <p className="text-[11px] font-semibold text-blue-700 tracking-wider uppercase mb-2 dark:text-blue-300">Strong</p>
                   <BadgesOf words={w.synonyms_strong} color="blue" />
                 </div>
               )}
@@ -128,14 +128,14 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
             {w.antonyms && w.antonyms.length > 0 ? (
               <div className="space-y-4">
                 {w.antonyms_strongest && w.antonyms_strongest.length > 0 && (
-                  <div className="bg-emerald-50/40 rounded-xl p-3 sm:p-4 border border-emerald-200/40">
-                    <p className="text-[11px] font-semibold text-emerald-700 tracking-wider uppercase mb-2">Strongest</p>
+                  <div className="bg-emerald-50/40 dark:bg-emerald-950/30 rounded-xl p-3 sm:p-4 border border-emerald-200/40 dark:border-emerald-700/40">
+                    <p className="text-[11px] font-semibold text-emerald-700 tracking-wider uppercase mb-2 dark:text-emerald-300">Strongest</p>
                     <BadgesOf words={w.antonyms_strongest!} color="emerald" />
                   </div>
                 )}
                 {w.antonyms_strong && w.antonyms_strong.length > 0 && (
-                  <div className="bg-blue-50/40 rounded-xl p-3 sm:p-4 border border-blue-200/40">
-                    <p className="text-[11px] font-semibold text-blue-700 tracking-wider uppercase mb-2">Strong</p>
+                  <div className="bg-blue-50/40 dark:bg-blue-950/30 rounded-xl p-3 sm:p-4 border border-blue-200/40 dark:border-blue-700/40">
+                    <p className="text-[11px] font-semibold text-blue-700 tracking-wider uppercase mb-2 dark:text-blue-300">Strong</p>
                     <BadgesOf words={w.antonyms_strong!} color="blue" />
                   </div>
                 )}
