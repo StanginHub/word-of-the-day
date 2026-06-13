@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Gentium_Plus } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { BellGif } from "@/components/bell-gif";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
@@ -50,6 +51,7 @@ export default function RootLayout({
             </Link>
             <div className="flex items-center gap-3">
               <span className="text-[11px] text-muted-foreground/50 tracking-wider">TH</span>
+              <ThemeToggle />
             </div>
           </div>
         </header>

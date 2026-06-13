@@ -325,6 +325,15 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
           </section>
         )}
 
+        {/* Load More */}
+        {words.length >= 31 && (
+          <div className="flex justify-center py-4">
+            <a href="/api/words" className="text-sm text-muted-foreground/60 hover:text-accent transition-colors">
+              View all words &rarr;
+            </a>
+          </div>
+        )}
+
       </div>
 
       {modalWord && (

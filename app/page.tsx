@@ -31,7 +31,8 @@ export default async function HomePage() {
   const { data: words, error } = await supabase
     .from("daily_words")
     .select("*")
-    .order("fetched_date", { ascending: false });
+    .order("fetched_date", { ascending: false })
+    .limit(31);
 
   if (error || !words || words.length === 0) {
     return (
