@@ -31,8 +31,8 @@ async function copyToClipboard(text: string) {
 function BadgesOf({ words, color }: { words: string[] | null; color: "emerald" | "blue" | "muted" }) {
   if (!words || words.length === 0) return null;
   const map = {
-    emerald: "border-emerald-500 text-emerald-700 bg-emerald-50 hover:bg-emerald-100",
-    blue:    "border-blue-500   text-blue-700   bg-blue-50   hover:bg-blue-100",
+    emerald: "border-emerald-500 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:border-emerald-400 dark:text-emerald-200 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50",
+    blue:    "border-blue-500   text-blue-700   bg-blue-50   hover:bg-blue-100   dark:border-blue-400   dark:text-blue-200   dark:bg-blue-950/40   dark:hover:bg-blue-900/50",
     muted:   "border-muted-foreground/20 text-muted-foreground/70 bg-muted/50 hover:bg-muted/80",
   };
   const base = (s: string) => {
