@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { SpeakButton } from "@/components/speak-button";
 import { cn } from "@/lib/utils";
 
 const WordModal = dynamic(() => import("@/components/word-modal"), {
@@ -172,6 +173,7 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
               <a href={"https://www.oxfordlearnersdictionaries.com/definition/english/" + encodeURIComponent(w.word.toLowerCase())} target="_blank" rel="noopener noreferrer" className="hover:underline decoration-accent/30 underline-offset-4 transition-all duration-200 hover:text-accent">
                 {w.word}
               </a>
+              <SpeakButton word={w.word} />
             </h1>
             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-[3px] rounded-full bg-accent/40" />
 
