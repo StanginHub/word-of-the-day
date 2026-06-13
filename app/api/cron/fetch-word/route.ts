@@ -81,6 +81,11 @@ async function scrapeOxford(overrideWord?: string): Promise<DictEntry> {
       ? cleanText(topicEl.find("div").first().text()) || cleanText(topicEl.text()) || ""
       : "";
 
+    // Try alternate sense pages for better CEFR/topic
+    // Oxford often rates the primary sense as A1 but other senses higher
+    const betterCefr = await findBetterCefr(overrideWord, cefr);
+    const finalCefr = betterCefr || cefr;
+
     if (!word)
       throw new Error(
         `Could not find word on Oxford detail page for "${overrideWord}"`
@@ -94,7 +99,7 @@ async function scrapeOxford(overrideWord?: string): Promise<DictEntry> {
       oxfordSynonyms: oxfordSynonyms.length > 0 ? oxfordSynonyms : undefined,
       examples: examples.length > 0 ? examples : undefined,
       etymology: etymology || undefined,
-      cefr: cefr || undefined,
+      cefr: finalCefr || undefined,
       topic: topic || undefined,
     };
   }
@@ -174,6 +179,10 @@ async function scrapeOxford(overrideWord?: string): Promise<DictEntry> {
         // CEFR — <div class="cefr">C2</div>
         cefr = cleanText($$("div.cefr").first().text()) || "";
 
+        // Try alternate senses for better CEFR
+        const betterCefr = await findBetterCefr(word, cefr);
+        if (betterCefr) cefr = betterCefr;
+
         // Topic — <a class="origin" href="/topic/..."><div>TopicName</div></a>
         const topicEl = $$("a.origin").first();
         if (topicEl.length) {
@@ -207,6 +216,36 @@ async function scrapeOxford(overrideWord?: string): Promise<DictEntry> {
 
 function cleanText(text: string): string {
   return text.replace(/\s+/g, " ").trim();
+}
+
+// Try alternate sense pages for better CEFR/topic
+const CEFR_RANK: Record<string, number> = { "A1": 1, "A2": 2, "B1": 3, "B2": 4, "C1": 5, "C2": 6 };
+
+async function findBetterCefr(word: string, current: string): Promise<string | undefined> {
+  const currentRank = CEFR_RANK[current] || 0;
+  if (currentRank >= 4) return undefined; // B2+ already good
+  
+  // Try up to 3 alternate sense URLs
+  const base = "https://www.oxfordlearnersdictionaries.com/definition/english/";
+  let best = current;
+  let bestRank = currentRank;
+  
+  for (let i = 1; i <= 3; i++) {
+    try {
+      const url = `${base}${encodeURIComponent(word)}_${i}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) continue;
+      const html = await res.text();
+      const $c = cheerio.load(html);
+      const cefr = cleanText($c("div.cefr").first().text()) || "";
+      const rank = CEFR_RANK[cefr] || 0;
+      if (rank > bestRank) {
+        best = cefr;
+        bestRank = rank;
+      }
+    } catch { continue; }
+  }
+  return best !== current ? best : undefined;
 }
 
 // ---------- step 2: Free Dictionary API fallback ----------
@@ -587,6 +626,28 @@ export async function POST(request: Request) {
     } catch (thaiErr) {
       console.warn("Thai translation fetch failed", thaiErr);
     }
+  }
+
+  // ---- preserve existing CEFR/topic from DB (don't downgrade) ----
+  if (entry.cefr || entry.topic) {
+    try {
+      const { createClient } = await import("@supabase/supabase-js");
+      const su = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const sk = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (su && sk) {
+        const sb2 = createClient(su, sk);
+        const r = await sb2.from("daily_words").select("cefr,topic").eq("word", entry.word).maybeSingle();
+        const oldCefr = r.data?.cefr || "";
+        const oldTopic = r.data?.topic || "";
+        // Keep existing if new value is empty or lower rank
+        if (oldCefr && (!entry.cefr || (CEFR_RANK[oldCefr] || 0) > (CEFR_RANK[entry.cefr] || 0))) {
+          entry.cefr = oldCefr;
+        }
+        if (oldTopic && !entry.topic) {
+          entry.topic = oldTopic;
+        }
+      }
+    } catch { /* ignore */ }
   }
 
   // ---- upsert into Supabase ----
