@@ -81,10 +81,6 @@ async function scrapeOxford(overrideWord?: string): Promise<DictEntry> {
       ? cleanText(topicEl.find("div").first().text()) || cleanText(topicEl.text()) || ""
       : "";
 
-    // Try alternate sense pages for better CEFR/topic
-    // Oxford often rates the primary sense as A1 but other senses higher
-    const betterCefr = await findBetterCefr(overrideWord, cefr);
-    const finalCefr = betterCefr || cefr;
 
     if (!word)
       throw new Error(
@@ -99,7 +95,7 @@ async function scrapeOxford(overrideWord?: string): Promise<DictEntry> {
       oxfordSynonyms: oxfordSynonyms.length > 0 ? oxfordSynonyms : undefined,
       examples: examples.length > 0 ? examples : undefined,
       etymology: etymology || undefined,
-      cefr: finalCefr || undefined,
+      cefr: cefr || undefined,
       topic: topic || undefined,
     };
   }
@@ -179,9 +175,6 @@ async function scrapeOxford(overrideWord?: string): Promise<DictEntry> {
         // CEFR — <div class="cefr">C2</div>
         cefr = cleanText($$("div.cefr").first().text()) || "";
 
-        // Try alternate senses for better CEFR
-        const betterCefr = await findBetterCefr(word, cefr);
-        if (betterCefr) cefr = betterCefr;
 
         // Topic — <a class="origin" href="/topic/..."><div>TopicName</div></a>
         const topicEl = $$("a.origin").first();
@@ -214,38 +207,10 @@ async function scrapeOxford(overrideWord?: string): Promise<DictEntry> {
   };
 }
 
-function cleanText(text: string): string {
-  return text.replace(/\s+/g, " ").trim();
-}
-
-// Try alternate sense pages for better CEFR/topic
 const CEFR_RANK: Record<string, number> = { "A1": 1, "A2": 2, "B1": 3, "B2": 4, "C1": 5, "C2": 6 };
 
-async function findBetterCefr(word: string, current: string): Promise<string | undefined> {
-  const currentRank = CEFR_RANK[current] || 0;
-  if (currentRank >= 4) return undefined; // B2+ already good
-  
-  // Try up to 3 alternate sense URLs
-  const base = "https://www.oxfordlearnersdictionaries.com/definition/english/";
-  let best = current;
-  let bestRank = currentRank;
-  
-  for (let i = 1; i <= 3; i++) {
-    try {
-      const url = `${base}${encodeURIComponent(word)}_${i}`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
-      if (!res.ok) continue;
-      const html = await res.text();
-      const $c = cheerio.load(html);
-      const cefr = cleanText($c("div.cefr").first().text()) || "";
-      const rank = CEFR_RANK[cefr] || 0;
-      if (rank > bestRank) {
-        best = cefr;
-        bestRank = rank;
-      }
-    } catch { continue; }
-  }
-  return best !== current ? best : undefined;
+function cleanText(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
 }
 
 // ---------- step 2: Free Dictionary API fallback ----------
