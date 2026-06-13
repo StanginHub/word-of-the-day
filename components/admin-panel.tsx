@@ -96,8 +96,16 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
   const bf = () => String.fromCharCode(66, 101, 97, 114, 101, 114);
   const auth = () => ({ "Content-Type": "application/json", Authorization: bf() + " " + secret });
 
-  const doAuth = () => {
+  const doAuth = async () => {
     if (!secret.trim()) return;
+    //  Verify secret against server before showing admin UI
+    const res = await fetch("/api/admin/export", {
+      headers: { "Content-Type": "application/json", Authorization: bf() + " " + secret },
+    }).catch(() => null);
+    if (!res || res.status === 401) {
+      flash("error", "Wrong secret");
+      return;
+    }
     setAuthed(true);
     sessionStorage.setItem("admin_secret", secret);
   };
