@@ -1,0 +1,28 @@
+name: Word of the Day Fetch
+on:
+  schedule:
+    - cron: '5 0 * * *'  # 00:05 UTC = 07:05 Thailand
+  workflow_dispatch:      # manual trigger button
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel cron
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "x-vercel-cron: ${{ secrets.WOD_CRON_SECRET }}" \
+            https://wod-by-stang.vercel.app/api/cron/fetch-word)
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          
+          echo "HTTP $HTTP_CODE"
+          echo "$BODY"
+          
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "❌ Failed with HTTP $HTTP_CODE"
+            exit 1
+          fi
+          
+          echo "✅ Word fetched: $(echo $BODY | grep -o '"word":"[^"]*"' | cut -d'"' -f4)"
