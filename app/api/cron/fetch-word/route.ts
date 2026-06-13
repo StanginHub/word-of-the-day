@@ -75,13 +75,7 @@ async function scrapeOxford(overrideWord?: string): Promise<DictEntry> {
         }
       });
     }
-    const cefr = cleanText($$("div.cefr").first().text()) || "";
-    const topicEl = $$("a.origin").first();
-    const topic = topicEl.length
-      ? cleanText(topicEl.find("div").first().text()) || cleanText(topicEl.text()) || ""
-      : "";
-
-
+    // (cefr/topic not extracted in override mode — preserved from DB)
     if (!word)
       throw new Error(
         `Could not find word on Oxford detail page for "${overrideWord}"`
@@ -95,8 +89,6 @@ async function scrapeOxford(overrideWord?: string): Promise<DictEntry> {
       oxfordSynonyms: oxfordSynonyms.length > 0 ? oxfordSynonyms : undefined,
       examples: examples.length > 0 ? examples : undefined,
       etymology: etymology || undefined,
-      cefr: cefr || undefined,
-      topic: topic || undefined,
     };
   }
 
@@ -604,13 +596,12 @@ export async function POST(request: Request) {
         const r = await sb2.from("daily_words").select("cefr,topic").eq("word", entry.word).maybeSingle();
         const oldCefr = r.data?.cefr || "";
         const oldTopic = r.data?.topic || "";
-        // Keep existing if new value is empty or lower rank
+        // Keep existing CEFR if new value is empty or lower rank
         if (oldCefr && (!entry.cefr || (CEFR_RANK[oldCefr] || 0) > (CEFR_RANK[entry.cefr] || 0))) {
           entry.cefr = oldCefr;
         }
-        if (oldTopic && !entry.topic) {
-          entry.topic = oldTopic;
-        }
+        // Always keep existing topic (override/enrich doesn't scrape topic)
+        entry.topic = oldTopic || entry.topic;
       }
     } catch { /* ignore */ }
   }
