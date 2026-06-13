@@ -226,7 +226,7 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
                     <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-1.5">STRONGEST</p>
                     <div className="flex flex-wrap gap-2 justify-center">
                       {word.antonyms_strongest.map((a: string) => (
-                        <Badge key={a} variant="outline" className="text-sm px-3 py-1 border-emerald-500 text-emerald-700 bg-emerald-50"><a href={oxfordUrl(a)} target="_blank" rel="noopener noreferrer" className="hover:underline">{a}</a></Badge>
+                        <Badge key={a} variant="outline" className="text-sm px-3 py-1 border-emerald-500 text-emerald-700 bg-emerald-50 dark:border-emerald-400 dark:text-emerald-200 dark:bg-emerald-950/40"><a href={oxfordUrl(a)} target="_blank" rel="noopener noreferrer" className="hover:underline">{a}</a></Badge>
                       ))}
                     </div>
                   </div>
@@ -236,7 +236,7 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
                     <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1.5">STRONG</p>
                     <div className="flex flex-wrap gap-2 justify-center">
                       {word.antonyms_strong.map((a: string) => (
-                        <Badge key={a} variant="outline" className="text-sm px-3 py-1 border-blue-500 text-blue-700 bg-blue-50"><a href={oxfordUrl(a)} target="_blank" rel="noopener noreferrer" className="hover:underline">{a}</a></Badge>
+                        <Badge key={a} variant="outline" className="text-sm px-3 py-1 border-blue-500 text-blue-700 bg-blue-50 dark:border-blue-400 dark:text-blue-200 dark:bg-blue-950/40"><a href={oxfordUrl(a)} target="_blank" rel="noopener noreferrer" className="hover:underline">{a}</a></Badge>
                       ))}
                     </div>
                   </div>
