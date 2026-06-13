@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { SpeakButton } from "@/components/speak-button";
 
 interface DailyWord {
   id: string;
@@ -49,6 +50,7 @@ export default function WordModal({ word, open, onOpenChange }: WordModalProps) 
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center">
             {word.word}
+            <SpeakButton word={word.word} />
           </DialogTitle>
         </DialogHeader>
 

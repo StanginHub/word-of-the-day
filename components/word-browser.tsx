@@ -56,6 +56,15 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
   const sorted = useMemo(() => [...words].sort((a, b) => new Date(b.fetched_date).getTime() - new Date(a.fetched_date).getTime()), [words]);
   const tw = sorted.find((w) => isToday(w.fetched_date, todayStr)) || sorted[0];
   const past = sorted.filter((w) => w !== tw);
+  const pastGroups = useMemo(() => {
+    const groups: Record<string, DailyWord[]> = {};
+    past.forEach((w) => {
+      const d = new Date(w.fetched_date);
+      const key = d.toLocaleString("en-US", { year: "numeric", month: "long" });
+      (groups[key] || (groups[key] = [])).push(w);
+    });
+    return Object.entries(groups);
+  }, [past]);
 
   const [modalWord, setModalWord] = useState<DailyWord | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -275,7 +284,7 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
         </section>
 
         {/* ═══ PAST WORDS ═══ */}
-        {past.length > 0 && (
+        {pastGroups.length > 0 && (
           <section className="animate-in slide-in-from-bottom-4 fade-in duration-500 delay-150">
             <div className="flex items-center gap-3 mb-5">
               <Separator className="flex-1" />
@@ -285,43 +294,48 @@ export function WordBrowser({ words }: { words: DailyWord[] }) {
               <Separator className="flex-1" />
             </div>
 
-            <div className="rounded-xl border border-border/40 divide-y divide-border/30 overflow-hidden">
-              {past.map((pw) => {
-                const thaiPreview = pw.thai_translations?.slice(0, 2) ?? [];
-                return (
-                  <button
-                    key={pw.id}
-                    onClick={() => open(pw)}
-                    className="w-full text-left flex items-center gap-3 px-5 py-4 hover:bg-muted/60 transition-colors cursor-pointer group active:bg-muted/80"
-                  >
-                    {/* date */}
-                    <span className="text-xs font-mono text-muted-foreground/50 font-medium w-10 shrink-0">{fmt(pw.fetched_date)}</span>
-                    {/* word */}
-                    <span className="text-base font-semibold text-foreground group-hover:text-accent transition-colors shrink-0">{pw.word}</span>
-                    {/* definition (hidden on mobile) */}
-                    <span className="text-muted-foreground/20 hidden sm:inline">·</span>
-                    <span className="text-sm text-muted-foreground/50 truncate hidden sm:block max-w-xs">{pw.definition}</span>
-                    {/* GT link icon */}
-                    <span className="ml-1 shrink-0 hidden sm:inline-block">
-                      <a href={"https://translate.google.com/?sl=en&tl=th&text=" + encodeURIComponent(pw.word)} target="_blank" rel="noopener noreferrer"
-                         className="inline-flex items-center justify-center w-6 h-6 rounded text-muted-foreground/30 hover:text-accent hover:bg-accent/5 transition-all"
-                         title="Open in Google Translate"
-                         onClick={e => e.stopPropagation()}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a10 10 0 1 0 10 10h-10V2z"/><path d="M2 12h10"/><path d="M12 2v10"/></svg>
-                      </a>
-                    </span>
-                    {/* Thai badges (right side) */}
-                    <div className="ml-auto flex gap-1.5 shrink-0">
-                      {thaiPreview.map((t, i) => (
-                        <span key={t + i} className="text-[11px] px-2 py-0.5 rounded-full bg-accent/8 text-accent/70 border border-accent/15 font-medium">
-                          {t}
+            {pastGroups.map(([month, words]) => (
+              <div key={month} className="mb-6">
+                <h3 className="text-xs font-mono text-muted-foreground/40 uppercase tracking-wider mb-2 px-2">{month}</h3>
+                <div className="rounded-xl border border-border/40 divide-y divide-border/30 overflow-hidden">
+                  {words.map((pw) => {
+                    const thaiPreview = pw.thai_translations?.slice(0, 2) ?? [];
+                    return (
+                      <button
+                        key={pw.id}
+                        onClick={() => open(pw)}
+                        className="w-full text-left flex items-center gap-3 px-5 py-4 hover:bg-muted/60 transition-colors cursor-pointer group active:bg-muted/80"
+                      >
+                        {/* date */}
+                        <span className="text-xs font-mono text-muted-foreground/50 font-medium w-10 shrink-0">{fmt(pw.fetched_date)}</span>
+                        {/* word */}
+                        <span className="text-base font-semibold text-foreground group-hover:text-accent transition-colors shrink-0">{pw.word}</span>
+                        {/* definition (hidden on mobile) */}
+                        <span className="text-muted-foreground/20 hidden sm:inline">·</span>
+                        <span className="text-sm text-muted-foreground/50 truncate hidden sm:block max-w-xs">{pw.definition}</span>
+                        {/* GT link icon */}
+                        <span className="ml-1 shrink-0 hidden sm:inline-block">
+                          <a href={"https://translate.google.com/?sl=en&tl=th&text=" + encodeURIComponent(pw.word)} target="_blank" rel="noopener noreferrer"
+                             className="inline-flex items-center justify-center w-6 h-6 rounded text-muted-foreground/30 hover:text-accent hover:bg-accent/5 transition-all"
+                             title="Open in Google Translate"
+                             onClick={e => e.stopPropagation()}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a10 10 0 1 0 10 10h-10V2z"/><path d="M2 12h10"/><path d="M12 2v10"/></svg>
+                          </a>
                         </span>
-                      ))}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                        {/* Thai badges (right side) */}
+                        <div className="ml-auto flex gap-1.5 shrink-0">
+                          {thaiPreview.map((t, i) => (
+                            <span key={t + i} className="text-[11px] px-2 py-0.5 rounded-full bg-accent/8 text-accent/70 border border-accent/15 font-medium">
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </section>
         )}
 

@@ -320,7 +320,7 @@ export function AdminPanel({ initialWords }: { initialWords: Word[] }) {
                     {(w.thai_translations||[]).slice(0,2).join(", ") || <span className="text-destructive/60">missing</span>}
                   </td>
                   <td className="px-3 py-3 hidden md:table-cell">
-                    {w.cefr ? <span className={"text-[10px] font-mono px-1.5 py-0.5 rounded " + (w.cefr === "C2" ? "bg-purple-100 text-purple-700" : w.cefr >= "B1" ? "bg-blue-100 text-blue-700" : "bg-muted text-muted-foreground")}>{w.cefr}</span> : <span className="text-muted-foreground/30">-</span>}
+                    {w.cefr ? <span className={"text-[10px] font-mono px-1.5 py-0.5 rounded " + (w.cefr === "C2" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" : w.cefr === "C1" ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300" : w.cefr >= "B1" ? "bg-fuchsia-100 text-fuchsia-700 dark:bg-blue-900/30 dark:text-blue-300" : "bg-muted text-muted-foreground")}>{w.cefr}</span> : <span className="text-muted-foreground/30">-</span>}
                   </td>
                   <td className="px-3 py-3 text-xs text-muted-foreground hidden lg:table-cell truncate max-w-[120px]">{w.topic || "-"}</td>
                   <td className="px-3 py-3 text-right">
